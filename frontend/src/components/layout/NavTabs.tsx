@@ -1,4 +1,4 @@
-type TabId = 'scanner' | 'overview'
+type TabId = 'scanner' | 'overview' | 'research'
 
 interface ActiveTab {
   id: TabId
@@ -18,7 +18,7 @@ const TABS: Tab[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'scanner', label: 'Scanner' },
   { id: 'analysis', label: 'Analysis', soon: true },
-  { id: 'research', label: 'Research', soon: true },
+  { id: 'research', label: 'Research' },
 ]
 
 interface NavTabsProps {
