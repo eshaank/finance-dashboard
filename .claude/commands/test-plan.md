@@ -15,16 +15,13 @@ Before creating test plan files, check the current branch:
 git branch --show-current
 ```
 
-**Default behavior** (`auto_branch = true` in `claude-mastery-project.conf`):
-- If on `main` or `master`: automatically create a feature branch and switch to it:
+- If on `main` or `master`: create a feature branch and switch to it:
   ```bash
   git checkout -b test/<feature-name>-plan
   ```
   Report: "Created branch `test/<feature>-plan` — main stays untouched."
 - If already on a feature branch: proceed
 - If not a git repo: skip this check
-
-**To disable:** Set `auto_branch = false` in `claude-mastery-project.conf`. When disabled, warn and ask the user before proceeding on main.
 
 ## Template
 
@@ -35,23 +32,23 @@ Generate the following markdown document:
 
 **Created:** [today's date]
 **Feature:** $ARGUMENTS
-**Status:** ⬜ Not Started
+**Status:** Not Started
 
 ---
 
 ## Quick Status
 
-Feature Area A:    ⬜ NOT TESTED
-Feature Area B:    ⬜ NOT TESTED
-Feature Area C:    ⬜ NOT TESTED
+Feature Area A:    NOT TESTED
+Feature Area B:    NOT TESTED
+Feature Area C:    NOT TESTED
 
 ---
 
 ## Prerequisites
 
-- [ ] Required services running
-- [ ] Test data created
-- [ ] Environment variables set
+- [ ] Backend running: `cd backend && uv run uvicorn app.main:app --reload` (port 8000)
+- [ ] Frontend running: `cd frontend && npm run dev` (port 5173)
+- [ ] Environment variables set (`.env` with `MASSIVE_API_KEY`, `VITE_API_BASE_URL`)
 
 ---
 
@@ -64,9 +61,9 @@ Feature Area C:    ⬜ NOT TESTED
 
 | Check | Expected | Actual | Status |
 |-------|----------|--------|--------|
-| Response code | 200 | | ⬜ |
-| Data returned | [specific shape] | | ⬜ |
-| UI updated | [specific change] | | ⬜ |
+| Response code / URL | 200 or correct route | | |
+| Data returned | [specific shape or visible content] | | |
+| UI updated | [specific change] | | |
 
 ---
 
@@ -82,8 +79,8 @@ Feature Area C:    ⬜ NOT TESTED
 ## Test 3: [Edge Cases]
 
 ### 3.1 [Empty state]
-### 3.2 [Maximum values]
-### 3.3 [Concurrent access]
+### 3.2 [Loading state]
+### 3.3 [Invalid ticker / API error]
 
 ---
 
@@ -93,25 +90,15 @@ Feature Area C:    ⬜ NOT TESTED
 |----------|------|------|
 | All happy paths work | Yes | Any failure |
 | Error messages shown | Yes | Silent failure |
-| Data persists | Yes | Lost on refresh |
+| API and UI in sync | Yes | Stale or wrong data |
 
 ---
 
-## Sign-Off
+## How to Run Tests
 
-| Test | Tester | Date | Status |
-|------|--------|------|--------|
-| Test 1 | | | ⬜ |
-| Test 2 | | | ⬜ |
-| Test 3 | | | ⬜ |
+- **Frontend unit tests:** `cd frontend && npm test` (if configured)
+- **Backend tests:** `cd backend && uv run pytest`
+- **E2E:** `npx playwright test` (ensure backend and frontend are running or use playwright webServer config)
 ```
 
 Save to `tests/plans/[feature-name]-test-plan.md`
-
-## RuleCatch Report
-
-After saving the test plan, check RuleCatch:
-
-- If the RuleCatch MCP server is available: query for violations related to testing in the project
-- Report any violations found (missing test coverage, untested features, etc.)
-- If no MCP: suggest checking the RuleCatch dashboard

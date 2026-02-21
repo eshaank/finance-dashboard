@@ -20,8 +20,7 @@ Before committing, check the current branch:
 git branch --show-current
 ```
 
-**Default behavior** (`auto_branch = true` in `claude-mastery-project.conf`):
-- If on `main` or `master`: automatically create a feature branch from the staged changes context:
+- If on `main` or `master`: create a feature branch from the staged changes context:
   ```bash
   git checkout -b feat/<scope-from-changes>
   ```
@@ -30,8 +29,6 @@ git branch --show-current
 - If already on a feature branch: proceed normally
 - If not a git repo: skip this check
 
-**To disable:** Set `auto_branch = false` in `claude-mastery-project.conf`. When disabled, warn and ask the user to confirm before committing to main.
-
 ## Task
 
 Review the staged changes and create a commit.
@@ -39,6 +36,7 @@ Review the staged changes and create a commit.
 ### Rules
 1. Use **conventional commit** format: `type(scope): description`
    - Types: feat, fix, docs, style, refactor, test, chore, perf
+   - Scope: e.g. frontend, backend, api, research-tab
 2. Description should be concise but descriptive (max 72 chars)
 3. If changes span multiple concerns, suggest splitting into multiple commits
 4. NEVER commit .env files or secrets
@@ -49,12 +47,3 @@ Use this as the commit message: $ARGUMENTS
 
 ### If no message provided
 Generate an appropriate commit message based on the diff.
-
-### RuleCatch Report (post-commit)
-
-After the commit succeeds, check RuleCatch for violations in the committed files:
-
-- If the RuleCatch MCP server is available: query for violations on the files in this commit
-- Report: "RuleCatch: X violations found in committed files" (with details if any)
-- If no MCP available: remind the user — "Check your RuleCatch dashboard for violations in this commit"
-- If violations are found: DO NOT undo the commit, just report them so the user can decide

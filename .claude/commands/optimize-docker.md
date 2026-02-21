@@ -18,8 +18,7 @@ Before modifying any files, check the current branch:
 git branch --show-current
 ```
 
-**Default behavior** (`auto_branch = true` in `claude-mastery-project.conf`):
-- If on `main` or `master`: automatically create a feature branch and switch to it:
+- If on `main` or `master`: create a feature branch and switch to it:
   ```bash
   git checkout -b chore/docker-optimize
   ```
@@ -27,15 +26,13 @@ git branch --show-current
 - If already on a feature branch: proceed
 - If not a git repo: skip this check
 
-**To disable:** Set `auto_branch = false` in `claude-mastery-project.conf`. When disabled, warn and ask the user before proceeding on main.
-
 ## Step 1 — Find and Read All Docker Files
 
 Read these files (if they exist):
 - `Dockerfile` (or the path provided in $ARGUMENTS)
 - `docker-compose.yml` / `docker-compose.yaml`
 - `.dockerignore`
-- `package.json` (for build scripts and dependencies)
+- **Frontend:** `frontend/package.json` (build scripts). **Backend:** `backend/pyproject.toml` or `requirements.txt`
 
 ## Step 2 — Audit Against Best Practices
 
@@ -123,7 +120,11 @@ Must include at minimum:
 .env.*
 .git/
 node_modules/
+frontend/node_modules/
 dist/
+.venv/
+__pycache__/
+*.pyc
 coverage/
 test-results/
 playwright-report/
@@ -233,9 +234,11 @@ FROM node:latest
 
 ## Step 3 — Generate Optimized Dockerfile
 
-If the current Dockerfile violates any rules above, generate a corrected version.
+If the current Dockerfile violates any rules above, generate a corrected version. This project may have **backend (FastAPI)** and/or **frontend (Vite)**. Use the matching template(s).
 
-Use this template as a starting point:
+### Template A: Node/Vite frontend (npm)
+
+Use for `frontend/` — build static assets, serve with nginx or a minimal server.
 
 ```dockerfile
 # ============================================
@@ -244,46 +247,91 @@ Use this template as a starting point:
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # Install dependencies (cached unless package.json changes)
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-
-# Build args for public env vars (Next.js only)
-# ARG NEXT_PUBLIC_RYBBIT_SITE_ID
-# ARG NEXT_PUBLIC_RYBBIT_URL
+COPY package.json package-lock.json* ./
+RUN npm ci
 
 # Copy source and build
 COPY . .
-RUN pnpm build
+RUN npm run build
 
-# Prune dev dependencies
-RUN pnpm prune --prod
+# ============================================
+# Stage 2: Production (nginx or serve static)
+# ============================================
+FROM nginx:alpine AS runner
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+Or to serve with Node: use a second stage with `node:20-alpine`, copy `dist/` and use a static server (e.g. `serve` or custom small server).
+
+### Template B: FastAPI backend (Python 3.12 + uv)
+
+Use for `backend/` — multi-stage, slim image, non-root, health check.
+
+```dockerfile
+# ============================================
+# Stage 1: Builder (install deps)
+# ============================================
+FROM python:3.12-slim AS builder
+WORKDIR /app
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Install dependencies (cached unless pyproject.toml/uv.lock change)
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --no-dev --no-install-project
 
 # ============================================
 # Stage 2: Production
 # ============================================
-FROM node:20-alpine AS runner
+FROM python:3.12-slim AS runner
 WORKDIR /app
 
 # Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN groupadd --system app && useradd --system --gid app app
 
-# Copy only what's needed
+# Copy venv from builder
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy application code
+COPY app ./app
+
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
+
+USER app
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Adjust paths if the backend lives at repo root (e.g. `COPY backend/ ./`). Use `EXPOSE 8000` and health check URL to match the app (e.g. `/api/health` or `/health`).
+
+### Template C: Generic Node API (npm)
+
+Use for a Node-based API (if the project had one):
+
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
 COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appgroup /app/package.json ./
-
-# Runtime config
 ENV NODE_ENV=production
 EXPOSE 3001
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
-
 USER appuser
 CMD ["node", "dist/index.js"]
 ```
@@ -292,57 +340,26 @@ CMD ["node", "dist/index.js"]
 
 If `.dockerignore` is missing or incomplete, create/update it with all required entries.
 
-## Step 5 — Docker Local Test Gate (if enabled)
+## Step 5 — Docker Local Test (optional)
 
-Check `claude-mastery-project.conf` for `docker_test_before_push`:
-
-**When `docker_test_before_push = true`:**
-
-Before ANY `docker push` is allowed, you MUST run this verification sequence. If any step fails, STOP and fix the issue — do NOT push.
+If the user wants to verify the image before push, run:
 
 ```bash
-# 1. Build the image
+# Build the image
 docker build -t $IMAGE_NAME .
 
-# 2. Run container locally
-docker run -d -p 3001:3001 --name test-container $IMAGE_NAME
-
-# 3. Wait for startup
+# Run container (adjust port: 8000 for FastAPI, 80 for nginx frontend, 3001 for Node API)
+docker run -d -p 8000:8000 --name test-container $IMAGE_NAME
 sleep 5
-
-# 4. Verify container is still running (didn't crash)
 docker ps --filter "name=test-container" --filter "status=running" -q
-
-# 5. Check health endpoint responds
-curl -sf http://localhost:3001/health || echo "HEALTH CHECK FAILED"
-
-# 6. Check container logs for fatal errors
-docker logs test-container 2>&1 | grep -iE "(error|fatal|exception|ENOENT|cannot find)" && echo "ERRORS FOUND IN LOGS"
-
-# 7. Clean up test container
+curl -sf http://localhost:8000/api/health || echo "HEALTH CHECK FAILED"
+docker logs test-container 2>&1 | tail -20
 docker stop test-container && docker rm test-container
 ```
 
-**Pass criteria — ALL must be true:**
-- Container is still running after 5 seconds (didn't exit with error)
-- Health endpoint returns HTTP 200
-- No fatal errors in container logs
+Report pass/fail. If any check fails, do not push until fixed.
 
-**If any check fails:** Report exactly what failed, show the logs, and do NOT push. Fix the issue first.
-
-**When `docker_test_before_push = false` (default):** Skip this step. The user manages their own testing.
-
-This gate applies to ALL docker push operations, not just `/optimize-docker`. Any command or workflow that pushes to Docker Hub must check this setting first.
-
-## Step 6 — RuleCatch Report
-
-After all changes are complete, check RuleCatch:
-
-- If the RuleCatch MCP server is available: query for violations in the modified Docker files
-- Report any violations found
-- If no MCP: suggest checking the RuleCatch dashboard
-
-## Step 7 — Report
+## Step 6 — Report
 
 Output a summary:
 - Image size estimate (before vs after)

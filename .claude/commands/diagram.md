@@ -1,5 +1,5 @@
 ---
-description: Generate or update project diagrams by scanning actual code — architecture, API, database, infrastructure
+description: Generate or update project diagrams by scanning actual code — architecture, API, services, infrastructure
 argument-hint: <type> [--update]
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
@@ -11,17 +11,17 @@ Scan the actual project and generate/update diagrams based on what exists in cod
 **Type:** $ARGUMENTS
 
 Available types:
-- `architecture` — System overview: services, connections, data flow → updates `project-docs/ARCHITECTURE.md`
-- `api` — API routes map: all endpoints grouped by resource → updates `project-docs/ARCHITECTURE.md`
-- `database` — Database schema: collections, indexes, relationships → updates `project-docs/ARCHITECTURE.md`
-- `infrastructure` — Deployment topology: servers, containers, regions → updates `project-docs/INFRASTRUCTURE.md`
+- `architecture` — System overview: frontend, backend, external APIs, data flow → updates `project-docs/ARCHITECTURE.md`
+- `api` — API routes map: all backend endpoints grouped by router → updates `project-docs/ARCHITECTURE.md`
+- `services` — External service clients (e.g. Polygon, Massive) and how the backend uses them → updates `project-docs/ARCHITECTURE.md`
+- `infrastructure` — Deployment topology: ports, containers (if any) → updates `project-docs/INFRASTRUCTURE.md`
 - `all` — Generate all diagram types
 
 If `--update` is passed, replace existing diagrams in-place. Otherwise, show the diagram and ask before writing.
 
 ## Diagram Format
 
-**ALL diagrams use ASCII box-drawing characters.** No Mermaid, no SVG, no external tools. ASCII works in every terminal, every markdown renderer, every code review.
+**ALL diagrams use ASCII box-drawing characters.** No Mermaid, no SVG. ASCII works in every terminal and markdown renderer.
 
 ```
 Box characters: ┌ ┐ └ ┘ │ ─ ├ ┤ ┬ ┴ ┼
@@ -36,243 +36,186 @@ Scan the project and generate a system overview diagram.
 
 ### What to scan:
 
-1. **`src/` directory structure** — identify services, handlers, adapters
+1. **Frontend** — `frontend/src/` (React/Vite)
    ```bash
-   find src/ -name "*.ts" -o -name "*.tsx" 2>/dev/null | head -50
+   find frontend/src/ -name "*.ts" -o -name "*.tsx" 2>/dev/null | head -50
    ```
 
-2. **Entry points** — find all server/app files
+2. **Backend entry** — FastAPI app and router registration
    ```bash
-   grep -rl "app.listen\|createServer\|express()\|fastify()\|Hono()" src/ 2>/dev/null
+   grep -rn "include_router\|FastAPI\|APIRouter" backend/app/ 2>/dev/null
    ```
 
-3. **Route definitions** — find where endpoints are defined
+3. **Backend routes** — FastAPI route decorators
    ```bash
-   grep -rn "app\.\(get\|post\|put\|delete\|patch\)\|router\.\(get\|post\|put\|delete\|patch\)" src/ 2>/dev/null
+   grep -rn "@router\.\(get\|post\|put\|delete\|patch\)\|@app\.\(get\|post\|put\|delete\|patch\)" backend/app/ 2>/dev/null
    ```
 
-4. **Database usage** — find which services access the database
+4. **External API usage** — HTTP clients and service modules
    ```bash
-   grep -rl "queryOne\|queryMany\|insertOne\|updateOne\|bulkOps\|MongoClient\|PrismaClient" src/ 2>/dev/null
+   grep -rl "httpx\|requests\|fetch" backend/app/ 2>/dev/null
+   ls backend/app/services/ 2>/dev/null
    ```
 
-5. **External service calls** — find adapters and API calls
+5. **Frontend API client** — how the frontend calls the backend
    ```bash
-   grep -rl "fetch(\|axios\|got(" src/ 2>/dev/null
+   grep -rn "api\.\|fetch\|getPriceChart\|getCompany" frontend/src/ 2>/dev/null
    ```
 
-6. **Package.json** — check for framework indicators
-   - `next` → Next.js app
-   - `express` → Express API
-   - `fastify` → Fastify API
-   - `hono` → Hono API
+6. **Config** — ports and env
+   - `frontend/vite.config.ts` or package.json scripts (dev port, e.g. 5173)
+   - `backend/app/config.py` or main (port 8000)
 
 ### Generate the diagram:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        YOUR SYSTEM                           │
-│                                                              │
-│   ┌───────────┐    HTTP     ┌───────────┐                  │
-│   │  Client   │────────────>│ Website   │                  │
-│   │  Browser  │             │  :3000    │                  │
-│   └───────────┘             └───────────┘                  │
-│         │                                                    │
-│         │  API calls        ┌───────────┐                  │
-│         └──────────────────>│   API     │                  │
-│                             │  :3001    │                  │
-│                             └─────┬─────┘                  │
-│                                   │                         │
-│                          read/write│                         │
-│                                   ▼                         │
-│                            ┌───────────┐                   │
-│                            │ MongoDB   │                   │
-│                            │ (wrapper) │                   │
-│                            └───────────┘                   │
-│                                                              │
-│   ┌───────────┐   reads    ┌───────────┐                  │
-│   │ Dashboard │────────────>│   API     │                  │
-│   │  :3002    │             │  :3001    │                  │
-│   └───────────┘             └───────────┘                  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+Adapt to what exists. Example for this stack (no database):
 
-**Adapt this to what ACTUALLY exists.** Don't include services that don't exist. Don't guess — only diagram what you found in code.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     FINANCE DASHBOARD                             │
+│                                                                   │
+│   ┌─────────────┐   HTTP (VITE_API_BASE_URL)  ┌─────────────┐    │
+│   │   Browser   │────────────────────────────>│  FastAPI    │    │
+│   │   (React)   │   GET /api/...               │  :8000      │    │
+│   │  :5173      │<────────────────────────────│             │    │
+│   └─────────────┘   JSON                      └──────┬──────┘    │
+│                                                       │           │
+│                                            HTTPS      │           │
+│                                    ┌──────────────────┼──────────┐
+│                                    ▼                  ▼           │
+│                            ┌─────────────┐   ┌─────────────┐     │
+│                            │ Polygon.io  │   │ Massive API │     │
+│                            │ (price,     │   │ (fundamentals,│   │
+│                            │  company)   │   │  short, etc) │     │
+│                            └─────────────┘   └─────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Where to write:
 
-Replace the `## System Overview` diagram section in `project-docs/ARCHITECTURE.md`.
-Also update `## Service Responsibilities` table and `## Data Flow` section based on findings.
+Replace or add a `## System Overview` diagram in `project-docs/ARCHITECTURE.md`. Update service responsibilities and data flow from findings.
 
 ---
 
 ## Type: `api`
 
-Scan all route definitions and generate an API routes map.
+Scan backend route definitions and generate an API routes map.
 
 ### What to scan:
 
 ```bash
-# Express/Fastify routes
-grep -rn "app\.\(get\|post\|put\|delete\|patch\)\|router\.\(get\|post\|put\|delete\|patch\)" src/ 2>/dev/null
+# FastAPI routers — decorators and prefix
+grep -rn "@router\.\(get\|post\|put\|delete\|patch\)" backend/app/routers/ 2>/dev/null
+grep -rn "include_router\|prefix=" backend/app/main.py 2>/dev/null
 
-# Next.js API routes (file-based)
-find src/app/api -name "route.ts" -o -name "route.tsx" 2>/dev/null
-find src/pages/api -name "*.ts" -o -name "*.tsx" 2>/dev/null
+# Inline routes on app (if any)
+grep -rn "@app\.\(get\|post\|put\|delete\|patch\)" backend/app/ 2>/dev/null
 ```
 
 ### Generate the diagram:
 
 ```
-API Routes Map
-==============
+API Routes Map (Backend)
+========================
 
-  /api/v1/
-  ├── auth/
-  │   ├── POST   /login          → handlers/auth.ts:handleLogin
-  │   ├── POST   /signup         → handlers/auth.ts:handleSignup
-  │   └── POST   /logout         → handlers/auth.ts:handleLogout
-  ├── users/
-  │   ├── GET    /               → handlers/users.ts:listUsers
-  │   ├── GET    /:id            → handlers/users.ts:getUser
-  │   ├── PUT    /:id            → handlers/users.ts:updateUser
-  │   └── DELETE /:id            → handlers/users.ts:deleteUser
-  └── health/
-      └── GET    /               → server.ts (inline)
+  /api/
+  ├── market-indices     GET   → routers/market_indices.py
+  ├── economic-data      GET   → routers/economic_data.py
+  ├── upcoming-events    GET   → routers/upcoming_events.py
+  ├── inside-days        GET   ?ticker=  → routers/inside_days.py
+  ├── price-chart        GET   ?ticker=&timeframe=  → routers/price_chart.py
+  ├── company/details   GET   ?ticker=  → routers/company.py
+  ├── fundamentals/...   GET   ?ticker=  → routers/fundamentals.py
+  └── health             GET   → main.py (or health router)
 ```
+
+List actual paths and routers from the scan. Use `/api/` prefix as in [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md).
 
 ### Where to write:
 
-Add/update an `## API Routes` section in `project-docs/ARCHITECTURE.md`.
+Add/update an `## API Routes` (or similar) section in `project-docs/ARCHITECTURE.md`.
 
 ---
 
-## Type: `database`
+## Type: `services`
 
-Scan database queries, models, and index registrations to map the schema.
+Map external API clients and how the backend uses them (no database in this project).
 
 ### What to scan:
 
 ```bash
-# Collections used in queries
-grep -rn "queryOne\|queryMany\|insertOne\|updateOne\|bulkOps\|deleteOne\|count(" src/ 2>/dev/null
+# Service modules and HTTP calls
+ls backend/app/services/ 2>/dev/null
+grep -rn "httpx\|requests\|AsyncClient\|get\|post" backend/app/services/ 2>/dev/null
 
-# Index registrations
-grep -rn "registerIndex\|createIndex\|ensureIndex" src/ scripts/ 2>/dev/null
-
-# Type definitions that map to collections
-grep -rn "interface.*{" src/types/ 2>/dev/null
+# Which routers use which services
+grep -rn "from app.services\|import.*polygon\|import.*massive" backend/app/ 2>/dev/null
 ```
 
 ### Generate the diagram:
 
 ```
-Database Schema
-===============
+External Services
+==================
 
-  ┌─────────────────────────┐      ┌─────────────────────────┐
-  │ users                   │      │ sessions                │
-  ├─────────────────────────┤      ├─────────────────────────┤
-  │ _id         ObjectId    │──┐   │ _id         ObjectId    │
-  │ email       string  [U] │  │   │ userId      ObjectId    │──┐
-  │ name        string      │  │   │ token       string  [U] │  │
-  │ apiKey      string [U,S]│  │   │ expiresAt   Date   [TTL]│  │
-  │ createdAt   Date        │  │   │ createdAt   Date        │  │
-  └─────────────────────────┘  │   └─────────────────────────┘  │
-                               │                                 │
-                               └─── userId references users._id ─┘
+  backend/app/services/
+  ├── polygon.py    → Polygon.io (company details, OHLC bars)
+  ├── massive.py    → Massive API (fundamentals, short interest, float)
+  └── (mock_data)   → In-memory mock (market indices, economic data, events)
 
-  Indexes:
-    users.email       — unique
-    users.apiKey      — unique, sparse
-    sessions.userId   — compound (userId, startedAt DESC)
-    sessions.expiresAt — TTL (auto-delete)
-
-  [U] = unique  [S] = sparse  [TTL] = auto-expiring
+  Routers → Services:
+    price_chart, inside_days, company  → polygon
+    fundamentals                       → massive
+    market_indices, economic_data, upcoming_events → mock_data
 ```
 
 ### Where to write:
 
-Add/update a `## Database Schema` section in `project-docs/ARCHITECTURE.md`.
+Add/update a `## External Services` or `## Data Sources` section in `project-docs/ARCHITECTURE.md`.
 
 ---
 
 ## Type: `infrastructure`
 
-Scan deployment config to generate infrastructure topology.
+Scan deployment and run configuration.
 
 ### What to scan:
 
-1. **`.env` / `.env.example`** — region variables, ports, hosts
-2. **`Dockerfile`** — what's containerized
-3. **`docker-compose.yml`** — service orchestration
-4. **`claude-mastery-project.conf`** — multi-region config
-5. **`package.json`** — deployment scripts
+1. **`.env.example`** — ports, API keys (no values), any deployment vars
+2. **`Dockerfile`** (if present) — what is containerized
+3. **`docker-compose.yml`** (if present)
+4. **`vercel.json`** or other host config (if present)
+5. **Ports** — frontend 5173, backend 8000 (from ARCHITECTURE.md or config)
 
 ```bash
-# Check for multi-region
-grep -n "_US\|_EU\|REGION" .env.example .env 2>/dev/null
-
-# Check for Docker
-ls Dockerfile docker-compose.yml 2>/dev/null
-
-# Check for deployment config
-grep -n "DOKPLOY\|HOSTINGER\|VERCEL\|VPS" .env.example .env 2>/dev/null
+grep -n "PORT\|5173\|8000\|VITE_API_BASE_URL" .env.example frontend/vite.config.ts backend/app/main.py 2>/dev/null
+ls Dockerfile docker-compose.yml vercel.json 2>/dev/null
 ```
 
 ### Generate the diagram:
 
-**Single region:**
+Adapt to what exists (e.g. local dev only, or Vercel + single backend):
+
 ```
 Infrastructure
 ==============
 
-  ┌──────────────── Production ────────────────┐
-  │                                             │
-  │   ┌─────────────┐     ┌─────────────┐     │
-  │   │   Docker     │     │  MongoDB    │     │
-  │   │   :3001      │────>│  Atlas      │     │
-  │   │   (API)      │     │             │     │
-  │   └─────────────┘     └─────────────┘     │
-  │         │                                   │
-  │   Dokploy on Hostinger VPS                  │
-  │   IP: (from .env)                           │
-  │                                             │
-  └─────────────────────────────────────────────┘
-```
+  Local development:
+    Frontend:  npm run dev     → http://localhost:5173
+    Backend:   uv run uvicorn  → http://localhost:8000
 
-**Multi-region:**
-```
-Infrastructure — Multi-Region
-==============================
-
-  ┌────────── US Region ──────────┐    ┌────────── EU Region ──────────┐
-  │                                │    │                                │
-  │  ┌──────────┐  ┌──────────┐  │    │  ┌──────────┐  ┌──────────┐  │
-  │  │ Docker   │  │ MongoDB  │  │    │  │ Docker   │  │ MongoDB  │  │
-  │  │ :latest  │─>│ Atlas US │  │    │  │ :eu      │─>│ Atlas EU │  │
-  │  └──────────┘  └──────────┘  │    │  └──────────┘  └──────────┘  │
-  │                                │    │                                │
-  │  VPS: (US IP)                  │    │  VPS: (EU IP)                  │
-  │  Dokploy US                    │    │  Dokploy EU                    │
-  │                                │    │                                │
-  └────────────────────────────────┘    └────────────────────────────────┘
-
-  US containers → US database ONLY
-  EU containers → EU database ONLY
-  NEVER cross-connect regions
+  (If Docker/Vercel: add boxes for containers or serverless.)
 ```
 
 ### Where to write:
 
-Replace the `## Environment Overview` diagram in `project-docs/INFRASTRUCTURE.md`.
+Replace or add `## Environment Overview` (or similar) in `project-docs/INFRASTRUCTURE.md`.
 
 ---
 
 ## Type: `all`
 
-Run all four types in sequence: architecture → api → database → infrastructure.
+Run in sequence: architecture → api → services → infrastructure.
 
 ---
 
@@ -280,21 +223,6 @@ Run all four types in sequence: architecture → api → database → infrastruc
 
 1. Show the generated diagram(s) to the user
 2. If `--update` was passed: write directly to the docs
-3. If not: ask "Write this to project-docs/ARCHITECTURE.md?" before writing
-4. Add a changelog entry with today's date:
-   ```
-   | (today) | Updated [type] diagram from code scan |
-   ```
-5. Report what was generated:
-   ```
-   Diagrams Generated
-   ==================
-   ✓ Architecture — 3 services found (Website, API, Dashboard)
-   ✓ API Routes — 12 endpoints across 4 resources
-   ✓ Database — 5 collections, 8 indexes
-   ✓ Infrastructure — multi-region (US + EU)
-
-   Written to:
-     project-docs/ARCHITECTURE.md (architecture, api, database)
-     project-docs/INFRASTRUCTURE.md (infrastructure)
-   ```
+3. If not: ask before writing to `project-docs/`
+4. Optionally add a short changelog line with today's date
+5. Report what was generated (architecture, api, services, infrastructure) and which files were updated

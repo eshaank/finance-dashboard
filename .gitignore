@@ -1,4 +1,4 @@
-# Env files — NEVER commit
+# Env files
 .env
 .env.*
 !.env.example
@@ -21,6 +21,7 @@ backend/.venv/
 Thumbs.db
 
 # Editor
+.cursor/
 .vscode/
 .idea/
 
@@ -29,3 +30,4 @@ CLAUDE.local.md
 
 # Python
 .venv/
+.vercel

@@ -15,30 +15,26 @@ Create a Playwright E2E test for: **$ARGUMENTS**
 "Page loads" is NOT a test. Every `test()` block MUST assert:
 - **URL** — verify the page navigated to the correct URL
 - **Visible elements** — verify key elements are present and visible
-- **Correct data** — verify the right content is displayed
+- **Correct data** — verify the right content is displayed (or loading/error state)
 - **Error states** — verify error messages show when expected
 
 ```typescript
-// CORRECT — explicit success criteria
-test('dashboard shows user data after login', async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('[name="email"]', 'test@example.com');
-  await page.fill('[name="password"]', 'password123');
-  await page.click('button[type="submit"]');
+// CORRECT — explicit success criteria (finance dashboard example)
+test('Research tab shows price chart after selecting ticker', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\//);
+  await page.getByRole('tab', { name: /Research/i }).click();
+  await page.getByPlaceholder(/ticker|symbol/i).fill('AAPL');
+  await page.getByRole('button', { name: /search|go/i }).click();
 
-  // ✅ Verify URL changed
-  await expect(page).toHaveURL('/dashboard');
-  // ✅ Verify key element visible
-  await expect(page.locator('h1')).toContainText('Welcome');
-  // ✅ Verify correct data displayed
-  await expect(page.locator('[data-testid="user-email"]')).toContainText('test@example.com');
-  // ✅ Verify sidebar loaded
-  await expect(page.locator('nav.sidebar')).toBeVisible();
+  await expect(page).toHaveURL(/research/);
+  await expect(page.locator('[data-testid="price-chart"]')).toBeVisible();
+  await expect(page.locator('text=AAPL')).toBeVisible();
 });
 
 // WRONG — this passes even when completely broken
-test('dashboard loads', async ({ page }) => {
-  await page.goto('/dashboard');
+test('Research tab loads', async ({ page }) => {
+  await page.goto('/research');
   // no assertions!
 });
 ```
@@ -49,7 +45,7 @@ A test is NOT done until it has:
 - [ ] At least one `await expect(page).toHaveURL()` assertion
 - [ ] At least one `await expect(locator).toBeVisible()` assertion
 - [ ] At least one content/data verification (`toContainText`, `toHaveValue`, etc.)
-- [ ] Error case coverage (what happens when it fails?)
+- [ ] Error case coverage where relevant (e.g. invalid ticker, API error)
 - [ ] No `// TODO` or placeholder assertions
 
 If you cannot check ALL of these, the test is incomplete. Say so and explain what's missing.
@@ -75,72 +71,64 @@ test.describe('[Feature Name]', () => {
   });
 
   test.describe('edge cases', () => {
-    test('should handle [empty state / max values / etc]', async ({ page }) => {
+    test('should handle [empty state / loading / etc]', async ({ page }) => {
       // Test boundaries
     });
   });
 });
 ```
 
-### 4. Port configuration — ALWAYS use test ports
+### 4. Port configuration
 
-E2E tests run on TEST ports, never dev ports:
+This project runs frontend and backend separately:
 
-| Service   | Test Port | Base URL                   |
-|-----------|-----------|----------------------------|
-| Website   | 4000      | http://localhost:4000      |
-| API       | 4010      | http://localhost:4010      |
-| Dashboard | 4020      | http://localhost:4020      |
+| Service   | Port | Base URL              |
+|-----------|------|------------------------|
+| Frontend  | 5173 | http://localhost:5173  |
+| Backend   | 8000 | http://localhost:8000  |
 
-The `baseURL` is already set in `playwright.config.ts`. Use relative paths:
+Set `baseURL: 'http://localhost:5173'` in `playwright.config.ts` (or equivalent). The frontend calls the backend via `VITE_API_BASE_URL`; for E2E, ensure the backend is running on 8000 or use a test double.
+
+Use relative paths for frontend routes:
 
 ```typescript
 // CORRECT — uses baseURL from config
-await page.goto('/dashboard');
+await page.goto('/');
 
-// WRONG — hardcoded URL
-await page.goto('http://localhost:3000/dashboard');
+// WRONG — hardcoded URL (unless you need a specific origin)
+await page.goto('http://localhost:5173/research');
 ```
 
-### 5. What to test for each page type
+### 5. What to test for this project
 
-**For a page/route:**
-- URL is correct after navigation
-- Page title / heading is present
-- Key UI elements are visible (nav, sidebar, footer, etc.)
-- Dynamic data is loaded and displayed
-- Links navigate to correct destinations
-- Responsive behavior (if applicable)
+**For a tab/page (Overview, Scanner, Research):**
+- URL or tab state after navigation
+- Page title or heading present
+- Key UI elements visible (nav tabs, main content area)
+- Data loaded and displayed (e.g. market indices, scanner table, price chart) or loading/error state
+- Links/tabs navigate correctly
 
-**For a form:**
-- Empty form shows proper validation messages
-- Valid submission succeeds (verify success state)
-- Invalid input shows specific error messages
-- Submit button disabled during processing
-- Form clears or redirects after success
+**For Research tab (ticker flow):**
+- Ticker input and search trigger correct URL/state
+- Price chart (or placeholder) visible for valid ticker
+- Company details section shows expected data or loading state
+- Timeframe buttons update chart (if applicable)
+- Invalid or empty ticker shows appropriate message or state
 
-**For an API endpoint:**
+**For API (if testing backend directly):**
 - Correct response status code
-- Response body matches expected shape
+- Response body matches expected shape (Pydantic schema)
 - Error responses have proper status codes and messages
-- Authentication/authorization is enforced
-
-**For authentication:**
-- Login with valid credentials succeeds
-- Login with invalid credentials shows error
-- Protected pages redirect to login
-- Logout clears session
-- Token expiry is handled
 
 ### 6. Naming convention
 
 File: `tests/e2e/[feature-name].spec.ts`
 
-Examples:
-- `tests/e2e/auth-login.spec.ts`
-- `tests/e2e/dashboard-overview.spec.ts`
-- `tests/e2e/api-users.spec.ts`
-- `tests/e2e/settings-profile.spec.ts`
+Examples for this project:
+- `tests/e2e/overview.spec.ts`
+- `tests/e2e/scanner.spec.ts`
+- `tests/e2e/research-ticker.spec.ts`
+- `tests/e2e/nav-tabs.spec.ts`
 
 ## Step 0 — Auto-Branch (if on main)
 
@@ -150,8 +138,7 @@ Before creating any files, check the current branch:
 git branch --show-current
 ```
 
-**Default behavior** (`auto_branch = true` in `claude-mastery-project.conf`):
-- If on `main` or `master`: automatically create a feature branch and switch to it:
+- If on `main` or `master`: create a feature branch and switch to it:
   ```bash
   git checkout -b test/<feature-name>
   ```
@@ -159,25 +146,22 @@ git branch --show-current
 - If already on a feature branch: proceed
 - If not a git repo: skip this check
 
-**To disable:** Set `auto_branch = false` in `claude-mastery-project.conf`. When disabled, warn and ask the user before proceeding on main.
-
 ## Step 1 — Gather Information
 
 Before writing the test:
 
-1. **Read the source code** for the feature/page being tested
+1. **Read the source code** for the feature/page being tested (e.g. `frontend/src/components/`, routing in `DashboardLayout`)
 2. **Identify all assertions** — what URLs, elements, and data should be verified?
-3. **Identify error states** — what can go wrong? What should the user see?
-4. **Check for test data** — does the test need seeded data? Mock API responses?
+3. **Identify error states** — invalid ticker, API down, empty state
+4. **Check** — does the test need the backend running, or can it run against mock/preview?
 
 ## Step 2 — Ask What to Verify (if not obvious)
 
 If the feature has multiple possible success criteria, ask the user:
 
-Use AskUserQuestion to clarify:
 - "What specific elements should be visible on this page?"
-- "What data should be displayed after this action?"
-- "What error message should appear for invalid input?"
+- "What data should be displayed after selecting a ticker?"
+- "What error message should appear for an invalid ticker?"
 
 ## Step 3 — Write the Test
 
@@ -185,7 +169,7 @@ Create the test file at `tests/e2e/[feature-name].spec.ts` following ALL rules a
 
 Every test file MUST include:
 1. At least one happy-path test
-2. At least one error-case test
+2. At least one error or edge-case test
 3. Explicit assertions in every `test()` block
 
 ## Step 4 — Verification Checklist
@@ -194,7 +178,7 @@ After writing, verify:
 
 - [ ] File is at `tests/e2e/[name].spec.ts`
 - [ ] Every `test()` has at least 3 assertions (URL, element, data)
-- [ ] Error cases are covered
+- [ ] Error or edge cases are covered
 - [ ] No hardcoded ports (uses baseURL from config)
 - [ ] No `// TODO` placeholders
 - [ ] Test names describe behavior: "should [verb] when [condition]"
@@ -203,27 +187,27 @@ After writing, verify:
 
 ## Running Tests
 
+Ensure backend is running (for tests that hit the API):
 ```bash
-# Run all E2E tests (spawns servers automatically on test ports)
-pnpm test:e2e
-
-# Run a specific test file
-pnpm test:e2e tests/e2e/auth-login.spec.ts
-
-# Run with UI mode (debug)
-pnpm test:e2e:ui
-
-# Run headed (see the browser)
-pnpm test:e2e:headed
-
-# View the last test report
-pnpm test:e2e:report
+cd backend && uv run uvicorn app.main:app --reload
 ```
 
-## RuleCatch Report
+Then run Playwright (from project root or frontend, depending on where playwright.config is):
+```bash
+# Run all E2E tests
+npx playwright test
 
-After the test file is created and verified, check RuleCatch:
+# Run a specific file
+npx playwright test tests/e2e/research-ticker.spec.ts
 
-- If the RuleCatch MCP server is available: query for violations in the new test file
-- Report any violations found (missing assertions, TypeScript issues, etc.)
-- If no MCP: suggest checking the RuleCatch dashboard
+# Run with UI (debug)
+npx playwright test --ui
+
+# Run headed (see browser)
+npx playwright test --headed
+
+# Show last report
+npx playwright show-report
+```
+
+If the project uses npm scripts (e.g. in root or frontend `package.json`), use those instead (e.g. `npm run test:e2e`).
