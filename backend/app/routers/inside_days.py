@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import get_current_user
 from app.schemas.models import InsideDayResult, OHLCBar
 from app.services.polygon import DailyBar, fetch_daily_candles
 
@@ -38,7 +39,7 @@ def count_inside_days(bars: list[DailyBar]) -> tuple[int, list[str]]:
 
 
 @router.get("/inside-days", response_model=InsideDayResult)
-def get_inside_days(ticker: str = Query(..., min_length=1, max_length=10)) -> InsideDayResult:
+def get_inside_days(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> InsideDayResult:
     try:
         bars = fetch_daily_candles(ticker)
     except ValueError as exc:

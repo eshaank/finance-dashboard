@@ -1,7 +1,16 @@
+import { supabase } from './supabase'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`)
+  const { data: { session } } = await supabase.auth.getSession()
+
+  const headers: Record<string, string> = {}
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`
+  }
+
+  const response = await fetch(`${BASE_URL}${path}`, { headers })
   if (!response.ok) {
     throw new Error(`API error ${response.status}: ${response.statusText}`)
   }
