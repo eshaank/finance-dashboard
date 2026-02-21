@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import economic_data, inside_days, market_indices, upcoming_events
+from app.routers import company, economic_data, fundamentals, inside_days, market_indices, price_chart, upcoming_events
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
@@ -18,6 +18,9 @@ app.include_router(market_indices.router, prefix="/api")
 app.include_router(economic_data.router, prefix="/api")
 app.include_router(upcoming_events.router, prefix="/api")
 app.include_router(inside_days.router, prefix="/api")
+app.include_router(fundamentals.router, prefix="/api")
+app.include_router(company.router, prefix="/api")
+app.include_router(price_chart.router, prefix="/api")
 
 
 @app.get("/api/health")

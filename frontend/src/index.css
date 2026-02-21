@@ -38,6 +38,22 @@
   background: linear-gradient(135deg, rgba(17, 17, 20, 0.9) 0%, rgba(24, 24, 28, 0.8) 100%);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card-hover:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Slide-fade entrance */
+@keyframes slideFade {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-fade {
+  animation: slideFade 0.3s ease-out forwards;
 }
 
 /* Accent glow */

@@ -3,9 +3,10 @@ import { MarketIndicesGrid } from '../market/MarketIndicesGrid'
 import { RecentDataTable } from '../data/RecentDataTable'
 import { UpcomingEventsPanel } from '../events/UpcomingEventsPanel'
 import { InsideDayScanner } from '../scanner/InsideDayScanner'
+import { ResearchTab } from '../research/ResearchTab'
 import { NavTabs } from './NavTabs'
 
-type ActiveTab = 'scanner' | 'overview'
+type ActiveTab = 'scanner' | 'overview' | 'research'
 
 export function DashboardLayout() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
@@ -16,6 +17,9 @@ export function DashboardLayout() {
       <main className="p-6 animate-fade-in">
         {activeTab === 'scanner' && (
           <InsideDayScanner />
+        )}
+        {activeTab === 'research' && (
+          <ResearchTab />
         )}
         {activeTab === 'overview' && (
           <>
