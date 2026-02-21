@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import get_current_user
 from app.schemas.models import (
     BalanceSheetEntry,
     CashFlowEntry,
@@ -19,7 +20,7 @@ router = APIRouter()
 
 
 @router.get("/fundamentals/balance-sheet", response_model=list[BalanceSheetEntry])
-def get_balance_sheet(ticker: str = Query(..., min_length=1, max_length=10)) -> list[BalanceSheetEntry]:
+def get_balance_sheet(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[BalanceSheetEntry]:
     try:
         rows = massive.get_balance_sheet(ticker)
         logger.debug("balance-sheet raw rows for %s: %s", ticker, rows[:2])
@@ -32,7 +33,7 @@ def get_balance_sheet(ticker: str = Query(..., min_length=1, max_length=10)) -> 
 
 
 @router.get("/fundamentals/cash-flow", response_model=list[CashFlowEntry])
-def get_cash_flow(ticker: str = Query(..., min_length=1, max_length=10)) -> list[CashFlowEntry]:
+def get_cash_flow(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[CashFlowEntry]:
     try:
         rows = massive.get_cash_flow(ticker)
         logger.debug("cash-flow raw rows for %s: %s", ticker, rows[:2])
@@ -45,7 +46,7 @@ def get_cash_flow(ticker: str = Query(..., min_length=1, max_length=10)) -> list
 
 
 @router.get("/fundamentals/income-statement", response_model=list[IncomeStatementEntry])
-def get_income_statement(ticker: str = Query(..., min_length=1, max_length=10)) -> list[IncomeStatementEntry]:
+def get_income_statement(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[IncomeStatementEntry]:
     try:
         rows = massive.get_income_statement(ticker)
         logger.debug("income-statement raw rows for %s: %s", ticker, rows[:2])
@@ -58,7 +59,7 @@ def get_income_statement(ticker: str = Query(..., min_length=1, max_length=10)) 
 
 
 @router.get("/fundamentals/ratios", response_model=list[RatiosEntry])
-def get_ratios(ticker: str = Query(..., min_length=1, max_length=10)) -> list[RatiosEntry]:
+def get_ratios(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[RatiosEntry]:
     try:
         rows = massive.get_ratios(ticker)
         logger.debug("ratios raw rows for %s: %s", ticker, rows[:2])
@@ -71,7 +72,7 @@ def get_ratios(ticker: str = Query(..., min_length=1, max_length=10)) -> list[Ra
 
 
 @router.get("/fundamentals/short-interest", response_model=list[ShortInterestEntry])
-def get_short_interest(ticker: str = Query(..., min_length=1, max_length=10)) -> list[ShortInterestEntry]:
+def get_short_interest(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[ShortInterestEntry]:
     try:
         rows = massive.get_short_interest(ticker)
         logger.debug("short-interest raw rows for %s: %s", ticker, rows[:2])
@@ -84,7 +85,7 @@ def get_short_interest(ticker: str = Query(..., min_length=1, max_length=10)) ->
 
 
 @router.get("/fundamentals/short-volume", response_model=list[ShortVolumeEntry])
-def get_short_volume(ticker: str = Query(..., min_length=1, max_length=10)) -> list[ShortVolumeEntry]:
+def get_short_volume(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> list[ShortVolumeEntry]:
     try:
         rows = massive.get_short_volume(ticker)
         logger.debug("short-volume raw rows for %s: %s", ticker, rows[:2])
@@ -97,7 +98,7 @@ def get_short_volume(ticker: str = Query(..., min_length=1, max_length=10)) -> l
 
 
 @router.get("/fundamentals/float", response_model=FloatData)
-def get_float(ticker: str = Query(..., min_length=1, max_length=10)) -> FloatData:
+def get_float(ticker: str = Query(..., min_length=1, max_length=10), _user: dict = Depends(get_current_user)) -> FloatData:
     try:
         data = massive.get_float(ticker)
         logger.debug("float raw data for %s: %s", ticker, data)

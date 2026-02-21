@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import get_current_user
 from app.schemas.models import CompanyDetailsResponse
 from app.services import polygon
 
@@ -13,6 +14,7 @@ router = APIRouter()
 @router.get("/company/details", response_model=CompanyDetailsResponse)
 def get_company_details(
     ticker: str = Query(..., min_length=1, max_length=10),
+    _user: dict = Depends(get_current_user),
 ) -> CompanyDetailsResponse:
     try:
         result = polygon.fetch_company_details(ticker.upper())
