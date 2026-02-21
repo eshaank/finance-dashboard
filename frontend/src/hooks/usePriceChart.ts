@@ -1,28 +1,18 @@
-import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import useSWR from 'swr'
+import { apiFetcher } from '../lib/swr'
 import type { ChartTimeframe, PriceChartResult } from '../types'
 
-interface State {
-  data: PriceChartResult | null
-  loading: boolean
-  error: string | null
-}
+export function usePriceChart(ticker: string | null, timeframe: ChartTimeframe) {
+  const { data, error, isLoading } = useSWR<PriceChartResult>(
+    ticker
+      ? `/api/v1/price-chart?ticker=${encodeURIComponent(ticker.toUpperCase())}&timeframe=${encodeURIComponent(timeframe)}`
+      : null,
+    apiFetcher,
+  )
 
-export function usePriceChart(ticker: string | null, timeframe: ChartTimeframe): State {
-  const [state, setState] = useState<State>({ data: null, loading: false, error: null })
-
-  useEffect(() => {
-    if (!ticker) return
-
-    setState({ data: null, loading: true, error: null })
-
-    api.getPriceChart(ticker, timeframe)
-      .then((data) => setState({ data: data as PriceChartResult, loading: false, error: null }))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        setState({ data: null, loading: false, error: message })
-      })
-  }, [ticker, timeframe])
-
-  return state
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Unknown error') : null,
+  }
 }

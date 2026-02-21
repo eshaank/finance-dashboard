@@ -1,24 +1,16 @@
-import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import useSWR from 'swr'
+import { apiFetcher } from '../lib/swr'
 import type { MarketIndex } from '../types'
 
-interface State {
-  data: MarketIndex[]
-  loading: boolean
-  error: string | null
-}
+export function useMarketIndices() {
+  const { data, error, isLoading } = useSWR<MarketIndex[]>(
+    '/api/v1/market-indices',
+    apiFetcher,
+  )
 
-export function useMarketIndices(): State {
-  const [state, setState] = useState<State>({ data: [], loading: true, error: null })
-
-  useEffect(() => {
-    api.getMarketIndices()
-      .then((data) => setState({ data: data as MarketIndex[], loading: false, error: null }))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        setState({ data: [], loading: false, error: message })
-      })
-  }, [])
-
-  return state
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Unknown error') : null,
+  }
 }

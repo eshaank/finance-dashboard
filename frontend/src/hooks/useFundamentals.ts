@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import useSWR from 'swr'
+import { apiFetcher } from '../lib/swr'
 import type {
   BalanceSheetEntry,
   CashFlowEntry,
@@ -21,37 +21,28 @@ type FundamentalsData =
   | FloatData
   | null
 
-interface State {
-  data: FundamentalsData
-  loading: boolean
-  error: string | null
+const TAB_PATHS: Record<FundamentalsTab, string> = {
+  'balance-sheet': '/api/v1/fundamentals/balance-sheet',
+  'cash-flow': '/api/v1/fundamentals/cash-flow',
+  'income-statement': '/api/v1/fundamentals/income-statement',
+  ratios: '/api/v1/fundamentals/ratios',
+  'short-interest': '/api/v1/fundamentals/short-interest',
+  'short-volume': '/api/v1/fundamentals/short-volume',
+  float: '/api/v1/fundamentals/float',
 }
 
-const fetchers: Record<FundamentalsTab, (ticker: string) => Promise<unknown>> = {
-  'balance-sheet': api.getBalanceSheet,
-  'cash-flow': api.getCashFlow,
-  'income-statement': api.getIncomeStatement,
-  ratios: api.getRatios,
-  'short-interest': api.getShortInterest,
-  'short-volume': api.getShortVolume,
-  float: api.getFloat,
-}
+export function useFundamentals(ticker: string, tab: FundamentalsTab) {
+  const path = TAB_PATHS[tab]
+  const key = ticker ? `${path}?ticker=${ticker.toUpperCase()}` : null
 
-export function useFundamentals(ticker: string, tab: FundamentalsTab): State {
-  const [state, setState] = useState<State>({ data: null, loading: false, error: null })
+  const { data, error, isLoading } = useSWR<FundamentalsData>(
+    key,
+    apiFetcher,
+  )
 
-  useEffect(() => {
-    if (!ticker) return
-
-    setState({ data: null, loading: true, error: null })
-
-    fetchers[tab](ticker)
-      .then((data) => setState({ data: data as FundamentalsData, loading: false, error: null }))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        setState({ data: null, loading: false, error: message })
-      })
-  }, [ticker, tab])
-
-  return state
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Unknown error') : null,
+  }
 }

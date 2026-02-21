@@ -5,7 +5,7 @@
 ## Template
 
 ```
-## ADR-001: [Short title]
+## ADR-NNN: [Short title]
 
 **Date:** YYYY-MM-DD
 **Status:** Accepted | Superseded | Deprecated
@@ -44,19 +44,144 @@ Maximum flexibility. No assumptions made about tech stack. Team decides all codi
 **Status:** Accepted
 
 ### Context
-The dashboard exposes market data and financial analysis tools. We need to restrict access to invited users only, with support for multiple auth methods (email/password, magic link, Google, GitHub). The app has a React + Vite frontend and FastAPI backend with no existing auth or database.
+The dashboard exposes market data and financial analysis tools. We need to restrict access to invited users only, with support for multiple auth methods (email/password, magic link, Google, GitHub).
 
 ### Decision
-Use **Supabase Auth** for authentication with public signups disabled (invite-only mode):
-
-- **Frontend**: `@supabase/supabase-js` client with `AuthProvider` context. All dashboard content gated behind login. JWT attached to every API request.
-- **Backend**: `PyJWT` verifies Supabase JWTs (HS256) on all data endpoints via FastAPI `Depends(get_current_user)`. Only `/api/health` remains public.
-- **Database**: A single `profiles` table in Supabase Postgres with RLS and an auto-create trigger on signup. No other tables — market data remains stateless.
-- **Invite flow**: Admins invite users via Supabase Dashboard or Admin API. Users receive an email link to set up their account.
+Use **Supabase Auth** for authentication with public signups disabled (invite-only mode). Backend verifies JWTs via JWKS endpoint (ES256). Only `/api/health` is public.
 
 ### Consequences
-- All dashboard access requires authentication — no anonymous browsing.
-- Backend endpoints return 401 for unauthenticated requests, protecting API keys from unauthorized use.
-- Adding new auth providers (e.g., Microsoft, Apple) is a Supabase config change, no code required.
-- The `profiles` table is the only database dependency — market data fetching remains stateless.
-- JWT secret must be kept in backend `.env` and never exposed to the frontend.
+- All dashboard access requires authentication.
+- Adding new auth providers is a Supabase config change, no code required.
+- JWT secret rotation handled by Supabase automatically.
+
+---
+
+## ADR-003: Domain-Driven Design (DDD) Backend Structure
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+The original flat structure (`routers/`, `services/`) worked for 7 endpoints but would not scale well as we add SEC filings, news, screeners, and watchlists. Each new feature required touching multiple directories and the shared services file grew unwieldy.
+
+### Decision
+Adopt DDD where each business domain (`market`, `research`, `fundamentals`, `scanner`, `economics`) is a self-contained module with its own `router.py`, `schemas.py`, `service.py`, and `client.py`. Shared infrastructure lives in `core/` and `shared/`.
+
+### Consequences
+- Adding a new domain is trivial: create folder, register router, done.
+- Domain isolation reduces coupling — changing the Polygon client doesn't affect Massive endpoints.
+- Slightly more files per feature, but each file is small and focused.
+- Business logic (e.g., inside-day algorithm) lives in service layer, not routers.
+
+---
+
+## ADR-004: SWR for Frontend Data Fetching
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+All 8 frontend hooks followed the same useState/useEffect pattern with manual loading/error state. No request deduplication — navigating between tabs caused duplicate API calls. No caching — data was refetched on every render.
+
+### Decision
+Replace all custom hooks with **SWR** (`useSWR`). Global SWR config provides revalidation, deduplication, and error retry. Each hook is now ~10 lines.
+
+### Consequences
+- Automatic request deduplication (same key = same request).
+- Built-in caching with configurable revalidation.
+- Eliminated ~200 lines of boilerplate across 8 hooks.
+- SWR adds ~4KB gzipped to bundle.
+
+---
+
+## ADR-005: API Versioning (v1)
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+The app had no API versioning. All endpoints were at `/api/*`. Future changes (response envelope, pagination, new fields) would break existing clients.
+
+### Decision
+Version the API under `/api/v1/`. Mount the same routers at `/api/` for backward compatibility during transition. Frontend updated to use `/api/v1/` paths.
+
+### Consequences
+- Breaking changes can be introduced in `/api/v2/` without affecting v1 clients.
+- Dual mount adds minimal overhead (FastAPI shares the same router objects).
+- Legacy `/api/` mount can be removed once all clients migrate.
+
+---
+
+## ADR-006: Async HTTP + Retry + Caching
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+All external API calls were synchronous (`httpx.get()`), blocking the event loop. No retry logic — transient failures from Polygon.io or Massive caused immediate 500s. No caching — identical requests within seconds hit external APIs repeatedly.
+
+### Decision
+- Convert all external calls to **async** (`httpx.AsyncClient`).
+- Add **tenacity** retry (3 attempts, exponential backoff) for transport errors.
+- Add **cachetools TTLCache** for frequently-accessed data (1min candles, 5min company details).
+- Manage httpx client lifecycle via FastAPI lifespan.
+
+### Consequences
+- External API flakiness is handled gracefully (retry before failing).
+- Candle data cached for 1 minute reduces Polygon API usage significantly.
+- Company details cached for 5 minutes (rarely changes).
+- Shared async client reuses connections efficiently.
+
+---
+
+## ADR-007: Global Error Handling
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+Every router handler had its own try/except block converting exceptions to HTTPException. The pattern was duplicated 15+ times with inconsistent error messages and status codes.
+
+### Decision
+Create an `AppException` hierarchy (`ExternalAPIError`, `NotFoundError`, `ValidationError`) with a global FastAPI exception handler. Domain routers raise semantic exceptions; the handler converts to JSON responses.
+
+### Consequences
+- Consistent error response format across all endpoints.
+- Router code focuses on business logic, not error formatting.
+- New domains get error handling for free.
+
+---
+
+## ADR-008: Rate Limiting (slowapi)
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+No rate limiting existed. A misbehaving client could exhaust external API quotas (Polygon, Massive) or overload the backend.
+
+### Decision
+Add **slowapi** with a default limit of 60 requests/minute per IP address.
+
+### Consequences
+- External API quotas are protected.
+- Legitimate users unlikely to hit 60/min limit.
+- Rate limit info returned in response headers (`X-RateLimit-*`).
+
+---
+
+## ADR-009: Response Envelope Format
+
+**Date:** 2026-02-21
+**Status:** Accepted
+
+### Context
+API responses returned raw data arrays/objects. No metadata (timestamps, request IDs) was included. This made debugging and monitoring harder.
+
+### Decision
+Define `ApiResponse[T]` envelope: `{ data: T, meta: { timestamp, request_id } }` and `PaginatedResponse[T]` with additional pagination fields. Frontend `apiFetcher` automatically unwraps the envelope.
+
+### Consequences
+- Every response includes a request ID for debugging.
+- Pagination metadata available for large datasets.
+- Frontend unwrapping is transparent — hooks see raw data types.

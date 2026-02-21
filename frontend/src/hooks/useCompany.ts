@@ -1,31 +1,16 @@
-import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import useSWR from 'swr'
+import { apiFetcher } from '../lib/swr'
 import type { CompanyDetails } from '../types'
 
-interface State {
-  data: CompanyDetails | null
-  loading: boolean
-  error: string | null
-}
+export function useCompany(ticker: string) {
+  const { data, error, isLoading } = useSWR<CompanyDetails>(
+    ticker ? `/api/v1/company/details?ticker=${ticker.toUpperCase()}` : null,
+    apiFetcher,
+  )
 
-export function useCompany(ticker: string): State {
-  const [state, setState] = useState<State>({ data: null, loading: false, error: null })
-
-  useEffect(() => {
-    if (!ticker) {
-      setState({ data: null, loading: false, error: null })
-      return
-    }
-
-    setState({ data: null, loading: true, error: null })
-
-    ;(api.getCompanyDetails(ticker) as Promise<CompanyDetails>)
-      .then((data) => setState({ data, loading: false, error: null }))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        setState({ data: null, loading: false, error: message })
-      })
-  }, [ticker])
-
-  return state
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? (error instanceof Error ? error.message : 'Unknown error') : null,
+  }
 }

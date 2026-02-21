@@ -45,18 +45,29 @@ npm run dev
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Frontend | React + TypeScript + Vite | React 19 |
-| Styling | Tailwind CSS | v4 |
+| Frontend | React + TypeScript + Vite | React 19, Vite 7 |
+| Data Fetching | SWR | v2 |
+| Styling | Tailwind CSS | v3 |
 | Backend | FastAPI + Python | Python 3.12+ |
-| Auth | Supabase Auth | @supabase/supabase-js |
+| HTTP Client | httpx (async) + tenacity (retry) | |
+| Caching | cachetools (TTLCache) | |
+| Rate Limiting | slowapi | |
+| Auth | Supabase Auth (ES256 JWKS) | @supabase/supabase-js |
 | Database | Supabase Postgres | (profiles only) |
-| HTTP Client | httpx | (backend) |
-| JWT | PyJWT | (backend) |
+| JWT | PyJWT | |
 | Fonts | DM Sans, Playfair Display, Geist Mono | Google Fonts |
+
+## Backend Dependencies (new in refactor)
+
+| Package | Purpose |
+|---------|---------|
+| `tenacity` | Retry logic for external API calls (3 attempts, exponential backoff) |
+| `cachetools` | In-memory TTL caching for API responses |
+| `slowapi` | Rate limiting (60 req/min per IP) |
 
 ## Deploying to Vercel
 
-1. **Environment variables** (Vercel Dashboard → Project → Settings → Environment Variables). Set for **Production** (and Preview if you use branch deploys):
+1. **Environment variables** (Vercel Dashboard > Project > Settings > Environment Variables):
 
    | Variable | Where | Notes |
    |----------|--------|--------|
@@ -66,11 +77,26 @@ npm run dev
    | `VITE_SUPABASE_URL` | Frontend (build) | Same as `SUPABASE_URL` |
    | `VITE_SUPABASE_ANON_KEY` | Frontend (build) | Supabase anon/publishable key |
 
-   Vite bakes `VITE_*` into the build, so they must be set in Vercel for the build step.
+2. **Vercel config** (`vercel.json`):
+   - Rewrites: `/api/v1/*` and `/api/*` → serverless function
+   - Function timeout: 15s (accounts for retry logic latency)
+   - Install: `npm install --legacy-peer-deps` (for SWR + react-simple-maps compatibility)
 
-2. **Supabase redirect URLs**  
-   Supabase Dashboard → Authentication → URL Configuration → **Redirect URLs**  
-   Add your production URL, e.g. `https://your-project.vercel.app` (and `https://your-project-*.vercel.app` if you use preview deployments). Required for Google OAuth and magic-link redirects.
+3. **Supabase redirect URLs**: Add production URL for OAuth/magic-link redirects.
 
-3. **Redeploy**  
-   Push to your connected branch or trigger a redeploy. No extra build step — the existing `vercel.json` (frontend build + `/api/*` → serverless) is enough. Auth works because the serverless function loads the same FastAPI app and uses `SUPABASE_URL` for JWKS verification.
+## CI/CD
+
+GitHub Actions CI runs on push to `main` and pull requests:
+
+- **Backend job**: ruff lint + pytest
+- **Frontend job**: eslint + tsc + vite build + vitest
+
+See `.github/workflows/ci.yml`.
+
+## API Documentation
+
+Interactive API docs available at:
+- `/api/v1/docs` — Swagger UI
+- `/api/v1/redoc` — ReDoc
+
+All endpoints are tagged by domain (market, research, fundamentals, scanner, economics).

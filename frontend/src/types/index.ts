@@ -152,6 +152,18 @@ export interface CompanyDetails {
   logo_url: string | null
 }
 
+// ── API Envelope ────────────────────────────────────────────────────────────
+
+export interface ApiMeta {
+  timestamp: string
+  request_id: string
+}
+
+export interface ApiResponse<T> {
+  data: T
+  meta: ApiMeta
+}
+
 // ── Global Economics / World Bank ────────────────────────────────────────────
 
 export type IndicatorId = 'gdp' | 'unemployment' | 'govtDebt' | 'interestRate' | 'inflation'

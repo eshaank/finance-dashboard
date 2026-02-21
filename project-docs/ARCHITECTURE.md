@@ -14,11 +14,14 @@ Browser (React SPA)
    |
    |  Auth: Supabase Auth (email/password, magic link, Google, GitHub)
    |  API:  HTTP GET + Authorization: Bearer <JWT>
+   |  Data: SWR (caching, deduplication, revalidation)
    v
 FastAPI Backend (:8000)
    |
-   |  JWT verification (HS256 via SUPABASE_JWT_SECRET)
-   |  HTTPS GET
+   |  JWT verification (ES256 via JWKS)
+   |  Rate limiting (slowapi, 60 req/min)
+   |  Async httpx + tenacity retry (3 attempts, exponential backoff)
+   |  In-memory TTL caching (cachetools)
    v
 Polygon.io API  /  Massive API
 
@@ -29,28 +32,86 @@ Supabase Cloud
 
 ---
 
+## Backend Structure — Domain-Driven Design
+
+The backend uses **Domain-Driven Design (DDD)** where each business domain is a self-contained module:
+
+```
+backend/app/
+├── api/
+│   ├── dependencies.py            # Shared deps (re-exports get_current_user)
+│   └── v1/
+│       └── router.py              # Aggregates all domain routers under /api/v1
+├── core/
+│   ├── config.py                  # Settings + get_settings() with @lru_cache
+│   ├── security.py                # JWT verification (ES256 via JWKS)
+│   ├── exceptions.py              # Global error handling (AppException hierarchy)
+│   ├── middleware.py               # Request logging + X-Request-ID
+│   └── rate_limit.py              # slowapi rate limiter (60/min)
+├── shared/
+│   ├── http_client.py             # Async httpx client with tenacity retry
+│   └── schemas.py                 # ApiResponse[T], PaginatedResponse[T]
+├── domains/
+│   ├── market/                    # Market indices + price charts (Polygon.io)
+│   │   ├── router.py              # GET /market-indices, GET /price-chart
+│   │   ├── schemas.py             # MarketIndex, OHLCBar, PriceChartResult
+│   │   ├── service.py             # Timeframe validation, bar conversion
+│   │   └── client.py              # Polygon candle API + TTLCache (1min)
+│   ├── research/                  # Company details (Polygon.io)
+│   │   ├── router.py              # GET /company/details
+│   │   ├── schemas.py             # CompanyDetailsResponse
+│   │   ├── service.py             # Response formatting
+│   │   └── client.py              # Polygon company API + TTLCache (5min)
+│   ├── fundamentals/              # Financial data (Massive API)
+│   │   ├── router.py              # 7 endpoints with pagination
+│   │   ├── schemas.py             # All financial statement models
+│   │   ├── service.py             # DRY generic fetch_and_parse helper
+│   │   └── client.py              # Massive API async client
+│   ├── scanner/                   # Technical pattern scanners
+│   │   ├── router.py              # GET /inside-days
+│   │   ├── schemas.py             # InsideDayResult
+│   │   └── service.py             # count_inside_days algorithm + compression
+│   ├── economics/                 # Economic indicators (mock data)
+│   │   ├── router.py              # GET /economic-data, GET /upcoming-events
+│   │   ├── schemas.py             # EconomicDataPoint, UpcomingEvent
+│   │   └── service.py             # Mock data (swappable to real API)
+│   ├── filings/                   # PLACEHOLDER — SEC Filings
+│   ├── news/                      # PLACEHOLDER — News & Sentiment
+│   └── screener/                  # PLACEHOLDER — Screener/Watchlist
+├── data/
+│   └── mock_data.py               # Static mock data for economics domain
+└── main.py                        # App factory, middleware, router registration
+```
+
+### Adding a New Domain
+
+1. Create `backend/app/domains/<name>/` with `__init__.py`, `router.py`, `schemas.py`, `service.py`, `client.py`
+2. Add router import in `backend/app/api/v1/router.py`
+3. Add corresponding frontend hook + component
+4. Zero changes to existing domains
+
+---
+
 ## Services
 
 ### Frontend — React + Vite (port 5173)
 
 | Does | Does NOT |
 |------|----------|
-| Render dashboard UI (Overview, Scanner, Research) | Store any persistent data |
-| Manage client-side state via React hooks | Perform server-side rendering |
-| Call backend REST API via `api.ts` | Call external APIs directly |
+| Render dashboard UI (Overview, Scanner, Research, Global Economics) | Store any persistent data |
+| Cache + deduplicate requests via SWR | Perform server-side rendering |
+| Call backend REST API via `apiFetcher` | Call external APIs directly |
 | Handle timeframe/tab/section navigation | |
 | Authenticate users via Supabase Auth | |
-| Gate all content behind login | |
 
 **Key paths:**
-- `src/App.tsx` — Root component (renders AuthPage or Dashboard based on session)
-- `src/contexts/AuthContext.tsx` — Auth state provider (session, user, signOut)
-- `src/components/auth/AuthPage.tsx` — Login page (email/password, magic link, OAuth)
-- `src/lib/supabase.ts` — Supabase client initialization
-- `src/components/layout/DashboardLayout.tsx` — Tab routing (Overview, Scanner, Research)
-- `src/hooks/` — Data-fetching hooks (one per API resource)
-- `src/lib/api.ts` — Centralized API client (attaches JWT to requests)
-- `src/types/index.ts` — Shared TypeScript interfaces
+- `src/App.tsx` — Root component (SWRConfig > AuthProvider > Router)
+- `src/lib/swr.ts` — SWR global config, typed fetcher with envelope unwrapping
+- `src/lib/api.ts` — Named API methods (convenience wrappers)
+- `src/hooks/` — SWR-based data-fetching hooks (one per API resource)
+- `src/types/index.ts` — Shared TypeScript interfaces + ApiResponse envelope
+- `src/components/ui/ErrorBoundary.tsx` — React error boundary
+- `src/components/ui/Skeleton.tsx` — Loading skeleton variants
 
 ### Backend — FastAPI (port 8000)
 
@@ -58,42 +119,33 @@ Supabase Cloud
 |------|----------|
 | Proxy Polygon.io for price/company data | Store data in a database |
 | Proxy Massive API for fundamentals/short data | Handle user sessions (Supabase does this) |
-| Detect inside-day patterns (algorithm in router) | Cache API responses (yet) |
-| Serve mock data for market indices/events | Handle WebSocket connections |
-| Validate query params and return typed JSON | Push notifications |
-| Verify Supabase JWTs on all protected endpoints | |
-
-**Key paths:**
-- `app/main.py` — FastAPI app + CORS + router registration
-- `app/auth.py` — JWT verification dependency (`get_current_user`)
-- `app/config.py` — Settings from environment variables
-- `app/routers/` — One file per endpoint group (all protected with auth)
-- `app/services/polygon.py` — Polygon.io API client
-- `app/services/massive.py` — Massive API client
-- `app/schemas/models.py` — Pydantic response models
-- `app/data/mock_data.py` — Static mock data (indices, economic, events)
+| Detect inside-day patterns (algorithm in service layer) | Handle WebSocket connections |
+| Cache API responses (TTLCache, 1-5min) | Push notifications |
+| Retry failed external requests (tenacity, 3 attempts) | |
+| Rate limit requests (slowapi, 60/min) | |
+| Add X-Request-ID to all responses | |
 
 ---
 
 ## API Endpoints
 
-All routes are prefixed with `/api`:
+All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 
-| Method | Path | Router | External API | Purpose |
+| Method | Path | Domain | External API | Purpose |
 |--------|------|--------|--------------|---------|
-| GET | `/market-indices` | market_indices | Mock data | SPY, QQQ, IWM, etc. |
-| GET | `/economic-data` | economic_data | Mock data | Economic indicators |
-| GET | `/upcoming-events` | upcoming_events | Mock data | Earnings, FOMC, etc. |
-| GET | `/inside-days?ticker=` | inside_days | Polygon (daily bars) | Inside-day pattern detection |
-| GET | `/price-chart?ticker=&timeframe=` | price_chart | Polygon (variable bars) | OHLC chart data (7 timeframes) |
-| GET | `/company/details?ticker=` | company | Polygon (reference) | Company info + logo |
-| GET | `/fundamentals/income-statement?ticker=` | fundamentals | Massive | Income statements |
-| GET | `/fundamentals/balance-sheet?ticker=` | fundamentals | Massive | Balance sheets |
-| GET | `/fundamentals/cash-flow?ticker=` | fundamentals | Massive | Cash flow statements |
-| GET | `/fundamentals/ratios?ticker=` | fundamentals | Massive | Financial ratios |
-| GET | `/fundamentals/short-interest?ticker=` | fundamentals | Massive | Short interest data |
-| GET | `/fundamentals/short-volume?ticker=` | fundamentals | Massive | Short volume data |
+| GET | `/market-indices` | market | Mock data | SPY, QQQ, IWM, etc. |
+| GET | `/price-chart?ticker=&timeframe=` | market | Polygon (candles) | OHLC chart data (7 timeframes) |
+| GET | `/company/details?ticker=` | research | Polygon (reference) | Company info + logo |
+| GET | `/fundamentals/balance-sheet?ticker=&page=&per_page=` | fundamentals | Massive | Balance sheets |
+| GET | `/fundamentals/cash-flow?ticker=&page=&per_page=` | fundamentals | Massive | Cash flow statements |
+| GET | `/fundamentals/income-statement?ticker=&page=&per_page=` | fundamentals | Massive | Income statements |
+| GET | `/fundamentals/ratios?ticker=&page=&per_page=` | fundamentals | Massive | Financial ratios |
+| GET | `/fundamentals/short-interest?ticker=&page=&per_page=` | fundamentals | Massive | Short interest data |
+| GET | `/fundamentals/short-volume?ticker=&page=&per_page=` | fundamentals | Massive | Short volume data |
 | GET | `/fundamentals/float?ticker=` | fundamentals | Massive | Free float data |
+| GET | `/inside-days?ticker=` | scanner | Polygon (daily bars) | Inside-day pattern detection |
+| GET | `/economic-data` | economics | Mock data | Economic indicators |
+| GET | `/upcoming-events` | economics | Mock data | Upcoming events |
 | GET | `/health` | main | - | Health check |
 
 ---
@@ -103,32 +155,13 @@ All routes are prefixed with `/api`:
 ### Polygon.io — Price Data + Company Info
 - **Base URL:** `https://api.polygon.io`
 - **Auth:** Query param `apiKey` (from `MASSIVE_API_KEY` env var)
-- **Endpoints used:**
-  - `GET /v3/reference/tickers/{ticker}` — Company details
-  - `GET /v2/aggs/ticker/{ticker}/range/{mult}/{span}/{from}/{to}` — OHLC bars
-- **Timeframe mapping** (price-chart endpoint):
-
-| UI Label | Bar Size | Lookback |
-|----------|----------|----------|
-| 1D | 5 min | 1 day |
-| 1W | 30 min | 7 days |
-| 1M | 1 day | 30 days |
-| 6M | 1 day | 180 days |
-| 12M | 1 day | 365 days |
-| 5Y | 1 week | 1825 days |
-| Max | 1 month | 7300 days |
+- **Retry:** 3 attempts, exponential backoff (tenacity)
+- **Cache:** TTLCache (1min candles, 5min company details)
 
 ### Massive API — Fundamentals + Short Data
 - **Base URL:** `https://api.massive.com`
-- **Auth:** Query param `apikey` (from `MASSIVE_API_KEY` env var)
-- **Endpoints used:**
-  - `/stocks/financials/v1/balance-sheets`
-  - `/stocks/financials/v1/cash-flow-statements`
-  - `/stocks/financials/v1/income-statements`
-  - `/stocks/financials/v1/ratios`
-  - `/stocks/v1/short-interest`
-  - `/stocks/v1/short-volume`
-  - `/stocks/vX/float`
+- **Auth:** Query param `apiKey` (from `MASSIVE_API_KEY` env var)
+- **Retry:** 3 attempts, exponential backoff (tenacity)
 
 ---
 
@@ -139,59 +172,48 @@ All routes are prefixed with `/api`:
 ```
 1. User clicks "6M" timeframe button
 2. ResearchTab updates chartTimeframe state → "6M"
-3. usePriceChart(ticker, "6M") hook fires useEffect
-4. api.getPriceChart(ticker, "6M") calls GET /api/price-chart?ticker=AAPL&timeframe=6M
-5. price_chart router validates timeframe, calls polygon.fetch_candles("AAPL", "6M")
-6. fetch_candles() looks up CHART_TIMEFRAMES["6M"] → {multiplier: 1, span: "day", days: 180}
-7. Sends GET to Polygon.io: /v2/aggs/ticker/AAPL/range/1/day/{180-days-ago}/{today}
-8. Polygon returns JSON with OHLC results
-9. fetch_candles() converts to list[DailyBar]
-10. Router wraps in PriceChartResult (ticker, timeframe, bars, latest_close)
-11. FastAPI serializes to JSON response
-12. Hook receives data, sets state
-13. PriceChart component re-renders SVG line chart
+3. usePriceChart(ticker, "6M") → SWR key changes → triggers fetch
+4. SWR checks cache → miss → calls apiFetcher("/api/v1/price-chart?...")
+5. apiFetcher attaches JWT, calls backend
+6. market/router validates timeframe via service layer
+7. market/client checks TTLCache → miss → fetch_with_retry to Polygon.io
+8. tenacity handles retries on transport errors
+9. Polygon returns OHLC bars → cached in TTLCache
+10. Router wraps in PriceChartResult, returns JSON
+11. SWR caches response, deduplicates concurrent requests
+12. PriceChart component re-renders with new data
 ```
 
-### Frontend hook pattern
+### Frontend hook pattern (SWR)
 
-All data-fetching hooks follow the same pattern:
 ```
-useState<{ data, loading, error }>
-  → useEffect([dependencies])
-    → setState({ loading: true })
-    → api.fetchSomething()
-      → .then(data => setState({ data, loading: false }))
-      → .catch(err => setState({ error: message, loading: false }))
+useSWR<T>(key | null, apiFetcher) → { data, error, isLoading }
 ```
+
+All hooks follow this pattern — SWR handles caching, deduplication, error retry, and revalidation.
 
 ---
 
 ## Frontend Tab Architecture
 
 ```
-App
+App (SWRConfig > AuthProvider)
  └── DashboardLayout
-      ├── NavTabs (Overview | Scanner | Research | Analysis*)
-      ├── Overview Tab
+      ├── NavTabs (Home | Scanner | Research | Global Economics)
+      ├── Home
       │    ├── MarketIndicesGrid     (useMarketIndices)
       │    ├── RecentDataTable       (useRecentData)
       │    └── UpcomingEventsPanel   (useUpcomingEvents)
-      ├── Scanner Tab
+      ├── Scanner
       │    └── InsideDayScanner      (useInsideDays)
-      └── Research Tab
-           ├── CompanyHeader         (useInsideDays — for price display)
-           ├── Section: Overview
-           │    └── OverviewSection
-           │         ├── PriceChart  (usePriceChart — separate from inside-days)
-           │         └── Company details card (useCompany)
-           ├── Section: Financials
-           │    └── FundamentalsTable (useFundamentals — income/balance/cashflow)
-           ├── Section: Short Interest
-           │    └── FundamentalsTable (useFundamentals — short-interest/short-volume)
-           └── Section: Float
-                └── FundamentalsTable (useFundamentals — float)
-
-* Analysis tab is disabled / coming soon
+      ├── Research
+      │    ├── CompanyHeader         (useInsideDays)
+      │    ├── OverviewSection       (usePriceChart, useCompany)
+      │    ├── FinancialsSection     (useFundamentals)
+      │    ├── ShortInterestSection  (useFundamentals)
+      │    └── FloatSection          (useFundamentals)
+      └── Global Economics
+           └── WorldChoropleth      (useWorldBankData — client-side JSON)
 ```
 
 ---
@@ -200,11 +222,9 @@ App
 
 Authentication uses **Supabase Auth** in invite-only mode:
 
-- **Frontend**: `AuthProvider` wraps the app. If no session exists, `AuthPage` is shown instead of the dashboard. On login, a JWT is obtained and attached to all API requests via `Authorization: Bearer <token>`.
-- **Backend**: Every protected endpoint uses `Depends(get_current_user)` which decodes the JWT with `SUPABASE_JWT_SECRET` (HS256). The `/api/health` endpoint remains public.
-- **Invite-only**: Public signups are disabled in Supabase. New users must be invited via the Supabase dashboard or Admin API.
-- **Auth methods**: Email/password, magic link, Google OAuth, GitHub OAuth.
-- **Profiles**: A `profiles` table in Supabase Postgres auto-creates a row on signup via a database trigger. RLS ensures users can only read/update their own profile.
+- **Frontend**: `AuthProvider` wraps the app. JWT attached to all API requests via SWR fetcher.
+- **Backend**: Every protected endpoint uses `Depends(get_current_user)` which verifies the JWT via JWKS endpoint (ES256).
+- **Rate limiting**: 60 requests/minute per IP via slowapi.
 
 ---
 
@@ -217,28 +237,13 @@ Authentication uses **Supabase Auth** in invite-only mode:
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon/publishable key |
 | `SUPABASE_URL` | Yes | Backend | Supabase project URL |
-| `SUPABASE_JWT_SECRET` | Yes | Backend | JWT secret for token verification |
 | `DEBUG` | No | Backend | FastAPI debug mode |
-
-### Ports
-- **5173** — Vite dev server (frontend)
-- **8000** — Uvicorn (backend)
-
-### CORS
-Backend allows origins: `http://localhost:5173`, `http://127.0.0.1:5173`
 
 ---
 
 ## Key Design Decisions
 
 See [DECISIONS.md](./DECISIONS.md) for the "why" behind each choice.
-
-**Highlights:**
-- **Supabase Auth (invite-only)** — All dashboard content is gated behind login. Backend endpoints verify JWTs. See [ADR-002](./DECISIONS.md) for rationale.
-- **Supabase Postgres for profiles only** — Market data is still fetched on demand from external APIs. The only database table is `profiles` for user metadata.
-- **Separate inside-days and price-chart endpoints** — Inside-day detection uses fixed 90-day daily bars; price chart supports 7 variable timeframes. Kept separate to avoid coupling.
-- **Mock data for overview** — Market indices, economic data, and events use static mock data (no external API calls on the overview tab).
-- **Single API key** — Both Polygon.io and Massive use the same key (`MASSIVE_API_KEY`).
 
 ---
 
