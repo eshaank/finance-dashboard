@@ -9,25 +9,33 @@
 
 Finance Dashboard is a two-tier web application: a **React + Vite** frontend and a **FastAPI** backend. The backend proxies two external market-data APIs (Polygon.io and Massive) and serves the results over a REST JSON API. **Supabase Auth** handles user authentication — the frontend gates all content behind login, and the backend verifies JWTs on every API request. User profiles are stored in a Supabase Postgres `profiles` table with Row Level Security.
 
-```
-Browser (React SPA)
-   |
-   |  Auth: Supabase Auth (email/password, magic link, Google, GitHub)
-   |  API:  HTTP GET + Authorization: Bearer <JWT>
-   |  Data: SWR (caching, deduplication, revalidation)
-   v
-FastAPI Backend (:8000)
-   |
-   |  JWT verification (ES256 via JWKS)
-   |  Rate limiting (slowapi, 60 req/min)
-   |  Async httpx + tenacity retry (3 attempts, exponential backoff)
-   |  In-memory TTL caching (cachetools)
-   v
-Polygon.io API  /  Massive API
+```mermaid
+graph TB
+    subgraph Client
+        Browser["React SPA<br/>(Vite + SWR)"]
+    end
 
-Supabase Cloud
-   ├── Auth (user sessions, invite-only signups)
-   └── Postgres (profiles table with RLS)
+    subgraph Backend["FastAPI Backend :8000"]
+        MW["Middleware<br/>Rate Limit | Logging | Request ID"]
+        Auth["JWT Verification<br/>(ES256 via JWKS)"]
+        Domains["Domain Routers<br/>market | research | fundamentals<br/>scanner | economics"]
+        HTTP["Async httpx Client<br/>tenacity retry (3x) | TTL cache"]
+    end
+
+    subgraph External["External Services"]
+        Polygon["Polygon.io<br/>Price data + Company info"]
+        Massive["Massive API<br/>Fundamentals + Shorts"]
+        Supabase["Supabase Cloud<br/>Auth + Postgres (profiles)"]
+    end
+
+    Browser -->|"Bearer JWT"| MW
+    MW --> Auth
+    Auth --> Domains
+    Domains --> HTTP
+    HTTP --> Polygon
+    HTTP --> Massive
+    Browser -->|"Login / OAuth"| Supabase
+    Auth -.->|"JWKS verify"| Supabase
 ```
 
 ---
@@ -36,51 +44,77 @@ Supabase Cloud
 
 The backend uses **Domain-Driven Design (DDD)** where each business domain is a self-contained module:
 
+```mermaid
+graph LR
+    subgraph api["api/v1/router.py"]
+        AGG["Route Aggregator"]
+    end
+
+    subgraph core["core/"]
+        CFG["config"]
+        SEC["security"]
+        EXC["exceptions"]
+        MID["middleware"]
+        RL["rate_limit"]
+    end
+
+    subgraph shared["shared/"]
+        HC["http_client<br/>(async + retry)"]
+        SCH["schemas<br/>(ApiResponse, Paginated)"]
+    end
+
+    subgraph domains["domains/"]
+        MKT["market<br/>indices, price charts"]
+        RES["research<br/>company details"]
+        FUN["fundamentals<br/>financials, ratios, shorts"]
+        SCN["scanner<br/>inside days"]
+        ECO["economics<br/>indicators, events"]
+        FIL["filings (placeholder)"]
+        NEW["news (placeholder)"]
+        SCR["screener (placeholder)"]
+    end
+
+    AGG --> MKT
+    AGG --> RES
+    AGG --> FUN
+    AGG --> SCN
+    AGG --> ECO
+
+    MKT --> HC
+    RES --> HC
+    FUN --> HC
+    SCN --> MKT
+
+    style FIL fill:#333,stroke:#555,color:#888
+    style NEW fill:#333,stroke:#555,color:#888
+    style SCR fill:#333,stroke:#555,color:#888
+```
+
+### Directory Layout
+
 ```
 backend/app/
-├── api/
-│   ├── dependencies.py            # Shared deps (re-exports get_current_user)
-│   └── v1/
-│       └── router.py              # Aggregates all domain routers under /api/v1
+├── api/v1/router.py         # Aggregates all domain routers under /api/v1
 ├── core/
-│   ├── config.py                  # Settings + get_settings() with @lru_cache
-│   ├── security.py                # JWT verification (ES256 via JWKS)
-│   ├── exceptions.py              # Global error handling (AppException hierarchy)
-│   ├── middleware.py               # Request logging + X-Request-ID
-│   └── rate_limit.py              # slowapi rate limiter (60/min)
+│   ├── config.py            # Settings + get_settings() with @lru_cache
+│   ├── security.py          # JWT verification (ES256 via JWKS)
+│   ├── exceptions.py        # AppException hierarchy + global handler
+│   ├── middleware.py         # Request logging + X-Request-ID
+│   └── rate_limit.py        # slowapi (60 req/min)
 ├── shared/
-│   ├── http_client.py             # Async httpx client with tenacity retry
-│   └── schemas.py                 # ApiResponse[T], PaginatedResponse[T]
+│   ├── http_client.py       # Async httpx + tenacity retry
+│   └── schemas.py           # ApiResponse[T], PaginatedResponse[T]
 ├── domains/
-│   ├── market/                    # Market indices + price charts (Polygon.io)
-│   │   ├── router.py              # GET /market-indices, GET /price-chart
-│   │   ├── schemas.py             # MarketIndex, OHLCBar, PriceChartResult
-│   │   ├── service.py             # Timeframe validation, bar conversion
-│   │   └── client.py              # Polygon candle API + TTLCache (1min)
-│   ├── research/                  # Company details (Polygon.io)
-│   │   ├── router.py              # GET /company/details
-│   │   ├── schemas.py             # CompanyDetailsResponse
-│   │   ├── service.py             # Response formatting
-│   │   └── client.py              # Polygon company API + TTLCache (5min)
-│   ├── fundamentals/              # Financial data (Massive API)
-│   │   ├── router.py              # 7 endpoints with pagination
-│   │   ├── schemas.py             # All financial statement models
-│   │   ├── service.py             # DRY generic fetch_and_parse helper
-│   │   └── client.py              # Massive API async client
-│   ├── scanner/                   # Technical pattern scanners
-│   │   ├── router.py              # GET /inside-days
-│   │   ├── schemas.py             # InsideDayResult
-│   │   └── service.py             # count_inside_days algorithm + compression
-│   ├── economics/                 # Economic indicators (mock data)
-│   │   ├── router.py              # GET /economic-data, GET /upcoming-events
-│   │   ├── schemas.py             # EconomicDataPoint, UpcomingEvent
-│   │   └── service.py             # Mock data (swappable to real API)
-│   ├── filings/                   # PLACEHOLDER — SEC Filings
-│   ├── news/                      # PLACEHOLDER — News & Sentiment
-│   └── screener/                  # PLACEHOLDER — Screener/Watchlist
-├── data/
-│   └── mock_data.py               # Static mock data for economics domain
-└── main.py                        # App factory, middleware, router registration
+│   ├── market/              # router, schemas, service, client
+│   ├── research/            # router, schemas, service, client
+│   ├── fundamentals/        # router, schemas, service, client
+│   ├── scanner/             # router, schemas, service
+│   ├── economics/           # router, schemas, service
+│   ├── filings/             # placeholder
+│   ├── news/                # placeholder
+│   └── screener/            # placeholder
+├── data/mock_data.py
+└── main.py
 ```
 
 ### Adding a New Domain
@@ -89,6 +123,141 @@ backend/app/
 2. Add router import in `backend/app/api/v1/router.py`
 3. Add corresponding frontend hook + component
 4. Zero changes to existing domains
+
+---
+
+## Data Flow
+
+### Request Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant SWR as SWR Cache
+    participant FE as apiFetcher
+    participant MW as Middleware
+    participant R as Router
+    participant S as Service
+    participant C as Client
+    participant Cache as TTL Cache
+    participant API as Polygon.io
+
+    U->>SWR: Click "6M" timeframe
+    SWR->>SWR: Check cache (key: /price-chart?ticker=AAPL&timeframe=6M)
+
+    alt Cache miss
+        SWR->>FE: Fetch
+        FE->>MW: GET /api/v1/price-chart + Bearer JWT
+        MW->>MW: Rate limit check, assign X-Request-ID
+        MW->>R: market/router
+        R->>S: validate_timeframe("6M")
+        R->>C: fetch_candles(client, "AAPL", "6M")
+        C->>Cache: Check TTL cache
+
+        alt Cache miss
+            C->>API: GET /v2/aggs/ticker/AAPL/range/1/day/...
+            Note over C,API: tenacity: 3 attempts, exponential backoff
+            API-->>C: OHLC bars JSON
+            C->>Cache: Store (TTL: 60s)
+        end
+
+        Cache-->>C: Cached bars
+        C-->>R: list[DailyBar]
+        R-->>FE: PriceChartResult JSON
+        FE-->>SWR: Store in SWR cache
+    end
+
+    SWR-->>U: Render chart
+```
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant SB as Supabase Auth
+    participant BE as Backend
+    participant JWKS as Supabase JWKS
+
+    U->>FE: Login (email/password or OAuth)
+    FE->>SB: signInWithPassword() / signInWithOAuth()
+    SB-->>FE: Session { access_token (JWT) }
+    FE->>FE: Store in AuthContext
+
+    U->>FE: Navigate to Research tab
+    FE->>BE: GET /api/v1/company/details?ticker=AAPL<br/>Authorization: Bearer <JWT>
+    BE->>JWKS: Fetch signing key (cached via @lru_cache)
+    JWKS-->>BE: ES256 public key
+    BE->>BE: jwt.decode(token, key, algorithms=["ES256"])
+
+    alt Valid token
+        BE-->>FE: 200 CompanyDetailsResponse
+    else Expired/Invalid
+        BE-->>FE: 401 Unauthorized
+        FE->>SB: refreshSession()
+    end
+```
+
+---
+
+## Frontend Architecture
+
+### Component Tree
+
+```mermaid
+graph TD
+    App["App<br/>(SWRConfig)"]
+    Auth["AuthProvider"]
+    AC["AppContent"]
+    AP["AuthPage"]
+    H["Header + NavTabs"]
+    DH["DashboardHome"]
+    DL["DashboardLayout"]
+
+    App --> Auth --> AC
+    AC -->|"no session"| AP
+    AC -->|"authenticated"| H
+    AC -->|"home"| DH
+    AC -->|"tab selected"| DL
+
+    subgraph Home["Home Tab"]
+        MIG["MarketIndicesGrid<br/>(useMarketIndices)"]
+        RDT["RecentDataTable<br/>(useRecentData)"]
+        UEP["UpcomingEventsPanel<br/>(useUpcomingEvents)"]
+    end
+
+    subgraph Scanner["Scanner Tab"]
+        IDS["InsideDayScanner<br/>(useInsideDays)"]
+    end
+
+    subgraph Research["Research Tab"]
+        CH["CompanyHeader<br/>(useInsideDays)"]
+        OV["OverviewSection<br/>(usePriceChart, useCompany)"]
+        FS["FinancialsSection<br/>(useFundamentals)"]
+        SI["ShortInterestSection<br/>(useFundamentals)"]
+        FL["FloatSection<br/>(useFundamentals)"]
+    end
+
+    subgraph Global["Global Economics Tab"]
+        WC["WorldChoropleth<br/>(useWorldBankData)"]
+    end
+
+    DH --> Home
+    DL --> Scanner
+    DL --> Research
+    DL --> Global
+```
+
+### SWR Hook Pattern
+
+All data-fetching hooks follow the same pattern:
+
+```typescript
+useSWR<T>(key | null, apiFetcher) → { data, error, isLoading }
+```
+
+SWR provides: request deduplication, in-memory caching, stale-while-revalidate, automatic error retry, and focus revalidation (disabled by default).
 
 ---
 
@@ -162,69 +331,6 @@ All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 - **Base URL:** `https://api.massive.com`
 - **Auth:** Query param `apiKey` (from `MASSIVE_API_KEY` env var)
 - **Retry:** 3 attempts, exponential backoff (tenacity)
-
----
-
-## Data Flow
-
-### Request lifecycle (example: price chart)
-
-```
-1. User clicks "6M" timeframe button
-2. ResearchTab updates chartTimeframe state → "6M"
-3. usePriceChart(ticker, "6M") → SWR key changes → triggers fetch
-4. SWR checks cache → miss → calls apiFetcher("/api/v1/price-chart?...")
-5. apiFetcher attaches JWT, calls backend
-6. market/router validates timeframe via service layer
-7. market/client checks TTLCache → miss → fetch_with_retry to Polygon.io
-8. tenacity handles retries on transport errors
-9. Polygon returns OHLC bars → cached in TTLCache
-10. Router wraps in PriceChartResult, returns JSON
-11. SWR caches response, deduplicates concurrent requests
-12. PriceChart component re-renders with new data
-```
-
-### Frontend hook pattern (SWR)
-
-```
-useSWR<T>(key | null, apiFetcher) → { data, error, isLoading }
-```
-
-All hooks follow this pattern — SWR handles caching, deduplication, error retry, and revalidation.
-
----
-
-## Frontend Tab Architecture
-
-```
-App (SWRConfig > AuthProvider)
- └── DashboardLayout
-      ├── NavTabs (Home | Scanner | Research | Global Economics)
-      ├── Home
-      │    ├── MarketIndicesGrid     (useMarketIndices)
-      │    ├── RecentDataTable       (useRecentData)
-      │    └── UpcomingEventsPanel   (useUpcomingEvents)
-      ├── Scanner
-      │    └── InsideDayScanner      (useInsideDays)
-      ├── Research
-      │    ├── CompanyHeader         (useInsideDays)
-      │    ├── OverviewSection       (usePriceChart, useCompany)
-      │    ├── FinancialsSection     (useFundamentals)
-      │    ├── ShortInterestSection  (useFundamentals)
-      │    └── FloatSection          (useFundamentals)
-      └── Global Economics
-           └── WorldChoropleth      (useWorldBankData — client-side JSON)
-```
-
----
-
-## Authentication
-
-Authentication uses **Supabase Auth** in invite-only mode:
-
-- **Frontend**: `AuthProvider` wraps the app. JWT attached to all API requests via SWR fetcher.
-- **Backend**: Every protected endpoint uses `Depends(get_current_user)` which verifies the JWT via JWKS endpoint (ES256).
-- **Rate limiting**: 60 requests/minute per IP via slowapi.
 
 ---
 
