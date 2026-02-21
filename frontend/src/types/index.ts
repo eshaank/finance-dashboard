@@ -151,3 +151,22 @@ export interface CompanyDetails {
   market_cap: number | null
   logo_url: string | null
 }
+
+// ── Global Economics / World Bank ────────────────────────────────────────────
+
+export type IndicatorId = 'gdp' | 'unemployment' | 'govtDebt' | 'interestRate' | 'inflation'
+
+export type YearlyValues = Record<string, number | null>
+
+export interface CountryRecord {
+  iso3: string
+  iso2: string
+  name: string
+  value: number | null   // most recent non-null year
+  year: string
+  yearly: YearlyValues   // { "2022": v, "2023": v, "2024": v }
+}
+
+export type IndicatorData = Record<string, CountryRecord>  // keyed by iso3
+
+export type AllIndicatorsData = Partial<Record<IndicatorId, IndicatorData>>
