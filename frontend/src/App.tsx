@@ -1,19 +1,27 @@
+import { useState } from 'react'
+import { SWRConfig } from 'swr'
 import { Header } from './components/layout/Header'
 import { DashboardLayout } from './components/layout/DashboardLayout'
+import { DashboardHome } from './components/layout/DashboardHome'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthPage } from './components/auth/AuthPage'
 import { Loader2 } from 'lucide-react'
+import { swrConfig } from './lib/swr'
+import type { ViewId } from './components/layout/NavTabs'
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SWRConfig value={swrConfig}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SWRConfig>
   )
 }
 
 function AppContent() {
   const { session, loading } = useAuth()
+  const [activeView, setActiveView] = useState<ViewId>('home')
 
   if (loading) {
     return (
@@ -29,8 +37,16 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-dash-bg grid-pattern">
-      <Header />
-      <DashboardLayout />
+      <Header
+        activeView={activeView}
+        onTabChange={(tab) => setActiveView(tab)}
+        onGoHome={() => setActiveView('home')}
+      />
+      {activeView === 'home' ? (
+        <DashboardHome />
+      ) : (
+        <DashboardLayout activeTab={activeView} />
+      )}
     </div>
   )
 }

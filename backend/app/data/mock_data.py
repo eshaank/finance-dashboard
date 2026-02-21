@@ -1,4 +1,5 @@
-from app.schemas.models import EconomicDataPoint, MarketIndex, UpcomingEvent
+from app.domains.economics.schemas import EconomicDataPoint, UpcomingEvent
+from app.domains.market.schemas import MarketIndex
 
 MARKET_INDICES: list[MarketIndex] = [
     MarketIndex(

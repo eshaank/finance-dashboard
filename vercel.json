@@ -1,13 +1,14 @@
 {
-  "installCommand": "cd frontend && npm install",
+  "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
+    { "source": "/api/v1/(.*)", "destination": "/api/index" },
     { "source": "/api/(.*)", "destination": "/api/index" }
   ],
   "functions": {
     "api/index.py": {
-      "maxDuration": 10
+      "maxDuration": 15
     }
   }
 }

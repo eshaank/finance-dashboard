@@ -1,38 +1,38 @@
-import { useState } from 'react'
 import { MarketIndicesGrid } from '../market/MarketIndicesGrid'
 import { RecentDataTable } from '../data/RecentDataTable'
 import { UpcomingEventsPanel } from '../events/UpcomingEventsPanel'
 import { InsideDayScanner } from '../scanner/InsideDayScanner'
 import { ResearchTab } from '../research/ResearchTab'
-import { NavTabs } from './NavTabs'
+import { GlobalEconomicsTab } from '../global-economics/GlobalEconomicsTab'
+import type { TabId } from './NavTabs'
 
-type ActiveTab = 'scanner' | 'overview' | 'research'
+interface DashboardLayoutProps {
+  activeTab: TabId
+}
 
-export function DashboardLayout() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
-
+export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
   return (
-    <>
-      <NavTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="p-6 animate-fade-in">
-        {activeTab === 'scanner' && (
-          <InsideDayScanner />
-        )}
-        {activeTab === 'research' && (
-          <ResearchTab />
-        )}
-        {activeTab === 'overview' && (
-          <>
-            <div className="mb-6">
-              <MarketIndicesGrid />
-            </div>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
-              <RecentDataTable />
-              <UpcomingEventsPanel />
-            </div>
-          </>
-        )}
-      </main>
-    </>
+    <main className="p-6 animate-fade-in">
+      {activeTab === 'scanner' && (
+        <InsideDayScanner />
+      )}
+      {activeTab === 'research' && (
+        <ResearchTab />
+      )}
+      {activeTab === 'us-economics' && (
+        <>
+          <div className="mb-6">
+            <MarketIndicesGrid />
+          </div>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+            <RecentDataTable />
+            <UpcomingEventsPanel />
+          </div>
+        </>
+      )}
+      {activeTab === 'global-economics' && (
+        <GlobalEconomicsTab />
+      )}
+    </main>
   )
 }
