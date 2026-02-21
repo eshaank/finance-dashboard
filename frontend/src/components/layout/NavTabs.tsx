@@ -1,5 +1,8 @@
 export type TabId = 'scanner' | 'us-economics' | 'research' | 'global-economics'
 
+/** Current view: dashboard home (customizable) or a nav tab. */
+export type ViewId = 'home' | TabId
+
 interface ActiveTab {
   id: TabId
   label: string
@@ -23,17 +26,18 @@ export const TABS: Tab[] = [
 ]
 
 interface HeaderNavTabsProps {
-  activeTab: TabId
+  /** null when viewing the dashboard home (no tab selected). */
+  activeTab: TabId | null
   onTabChange: (tab: TabId) => void
 }
 
 /** Tab buttons for use inside the header (single bar). */
 export function HeaderNavTabs({ activeTab, onTabChange }: HeaderNavTabsProps) {
   return (
-    <div className="flex items-center gap-1 min-w-0 flex-1 justify-center">
+    <div className="relative z-0 flex min-w-0 flex-1 items-center justify-center">
       {TABS.map((tab) => {
         const isSoon = tab.soon === true
-        const isActive = !isSoon && tab.id === activeTab
+        const isActive = !isSoon && activeTab !== null && tab.id === activeTab
 
         return (
           <button

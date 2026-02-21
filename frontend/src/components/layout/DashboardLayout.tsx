@@ -8,7 +8,6 @@ import type { TabId } from './NavTabs'
 
 interface DashboardLayoutProps {
   activeTab: TabId
-  onTabChange: (tab: TabId) => void
 }
 
 export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
