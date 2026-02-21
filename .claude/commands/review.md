@@ -15,9 +15,9 @@ Verify the current branch context:
 git branch --show-current
 ```
 
-- If on `main` or `master` and `auto_branch = true` in `claude-mastery-project.conf`: warn — "You're reviewing changes directly on main. Next time, start work on a feature branch."
+- If on `main` or `master`: warn — "You're reviewing changes directly on main. Next time, start work on a feature branch."
 - Report which branch is being reviewed in the output header
-- Review is read-only so no auto-branch is created, but the warning reminds the user for future commands
+- Review is read-only so no auto-branch is created
 
 ## Context
 - Current diff: !`git diff HEAD`
@@ -25,34 +25,32 @@ git branch --show-current
 
 ## Review Checklist
 
+### Cross-cutting
 1. **Security** — OWASP Top 10, no secrets in code, proper input validation
-2. **Types** — No `any`, proper null handling, explicit return types
-3. **Error Handling** — No swallowed errors, proper logging, user-friendly messages
-4. **Performance** — No N+1 queries, no memory leaks, proper pagination
-5. **Testing** — New code has tests, tests have explicit assertions
-6. **Database** — Using centralized wrapper, no direct connections
-7. **API Versioning** — All endpoints use `/api/v1/` prefix
+2. **Error Handling** — No swallowed errors, proper logging, user-friendly messages
+3. **Testing** — New code has tests where appropriate, tests have explicit assertions
+4. **API** — All backend endpoints use `/api/` prefix (see [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md))
 
-## RuleCatch Report
+### Frontend (TypeScript / React in `frontend/src/`)
+- **Types** — No `any`, proper null handling, explicit return types on exported functions
+- **React** — Hook dependency arrays correct, no missing deps in useEffect/useCallback/useMemo
+- **Style** — No inline styles for layout; use Tailwind or CSS modules
+- **API client** — All backend calls go through `src/lib/api.ts`; no raw fetch to backend URLs elsewhere
 
-After completing the manual review, query RuleCatch for automated violations on the changed files:
-
-- If the RuleCatch MCP server is available: query for violations on the files in the current diff
-- Include results in a dedicated section of the review output (see format below)
-- This catches pattern-based violations the manual review might miss
-- If no MCP available: suggest — "Ask `RuleCatch, what violations happened today?` for automated checks"
+### Backend (Python / FastAPI in `backend/app/`)
+- **Types** — Type hints on every function (params and return); use `list[...]`, `str | None` (Python 3.10+)
+- **Pydantic** — All response/request bodies use Pydantic models in `app/schemas/`; no bare dict returns
+- **Async** — Handlers that do I/O (HTTP to Polygon/Massive) use `async def`; no blocking calls in async paths
+- **Errors** — No bare `except:`; use `except Exception` with logging or re-raise; HTTPException for API errors
+- **Routers** — Route handlers are thin; external API calls live in `app/services/` (e.g. polygon.py, massive.py)
+- **Lint** — Code is ruff-clean (`uv run ruff check backend/`)
 
 ## Output Format
 
 For each issue found:
-- **File**: path/to/file.ts:line
-- **Severity**: 🔴 Critical | 🟡 Warning | 🔵 Info
+- **File**: path/to/file:line
+- **Severity**: Critical | Warning | Info
 - **Issue**: Description
 - **Fix**: Suggested change
 
-### RuleCatch Violations
-| File | Rule | Severity | Details |
-|------|------|----------|---------|
-| ... | ... | ... | ... |
-
-If no RuleCatch violations: "RuleCatch: No violations detected"
+Group findings by layer (Frontend vs Backend) when changes span both.
