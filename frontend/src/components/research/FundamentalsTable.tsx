@@ -40,6 +40,13 @@ function periodLabel(r: { period_end: string; timeframe: string | null; fiscal_q
   return r.period_end.slice(0, 7)
 }
 
+function subValueColor(val: string): string {
+  if (val === '—') return 'text-white/30'
+  if (val.startsWith('+')) return 'text-emerald-400'
+  if (val.startsWith('-')) return 'text-rose-400'
+  return 'text-white/40'
+}
+
 interface MetricRow {
   label: string
   bold: boolean
@@ -61,14 +68,17 @@ function TransposedTable({ periodHeaders, metricRows }: TransposedTableProps) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="border-b border-white/[0.08]">
-            <th className="text-left py-2 pr-4 text-xs text-white/30 font-medium min-w-[160px] sticky left-0 bg-transparent">
+          <tr className="border-b border-white/[0.10] bg-white/[0.02]">
+            <th className="text-left py-2.5 pr-4 text-xs text-white/30 font-medium min-w-[160px] sticky left-0 bg-dash-surface z-10">
               Metric
             </th>
-            {periodHeaders.map((h) => (
+            {periodHeaders.map((h, idx) => (
               <th
                 key={h}
-                className="py-2 px-3 text-right font-mono text-xs text-white/50 uppercase whitespace-nowrap font-medium"
+                className={cn(
+                  'py-2.5 px-3 text-right font-mono text-xs uppercase whitespace-nowrap font-medium',
+                  idx === 0 ? 'text-white font-semibold' : 'text-white/50',
+                )}
               >
                 {h}
               </th>
@@ -81,43 +91,61 @@ function TransposedTable({ periodHeaders, metricRows }: TransposedTableProps) {
               <tr
                 key={`row-${rowIdx}`}
                 className={cn(
-                  'border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors',
-                  rowIdx > 0 && metricRows[rowIdx - 1].subRows && 'border-t border-white/[0.05]',
+                  'border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors',
+                  rowIdx > 0 && metricRows[rowIdx - 1].subRows && 'border-t border-white/[0.08]',
+                  rowIdx % 2 === 1 && 'bg-white/[0.015]',
                 )}
               >
                 <td
                   className={cn(
-                    'py-2 pr-4 text-xs whitespace-nowrap sticky left-0',
-                    row.bold ? 'font-semibold text-white/90' : 'text-white/70',
+                    'py-2 pr-4 text-xs whitespace-nowrap sticky left-0 bg-dash-surface z-10',
+                    row.bold
+                      ? 'font-semibold text-white/90 border-l-2 border-accent/60 pl-2'
+                      : 'text-white/70',
+                    rowIdx % 2 === 1 && 'bg-dash-surface',
                   )}
                 >
                   {row.label}
                 </td>
-                {periodHeaders.map((_, colIdx) => (
-                  <td
-                    key={colIdx}
-                    className="py-2 px-3 font-mono text-xs text-right text-white/70 whitespace-nowrap"
-                  >
-                    {row.getValue(colIdx)}
-                  </td>
-                ))}
+                {periodHeaders.map((_, colIdx) => {
+                  const val = row.getValue(colIdx)
+                  return (
+                    <td
+                      key={colIdx}
+                      className={cn(
+                        'py-2 px-3 font-mono text-xs text-right whitespace-nowrap',
+                        colIdx === 0 ? 'bg-white/[0.025]' : '',
+                        row.bold ? 'text-white/[0.85]' : 'text-white/70',
+                      )}
+                    >
+                      {val}
+                    </td>
+                  )
+                })}
               </tr>
               {row.subRows?.map((sub, subIdx) => (
                 <tr
                   key={`row-${rowIdx}-sub-${subIdx}`}
-                  className="border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors"
+                  className="border-b border-white/[0.02] hover:bg-white/[0.03] transition-colors"
                 >
-                  <td className="py-1 pr-4 pl-4 text-xs italic text-white/40 whitespace-nowrap sticky left-0">
+                  <td className="py-1 pr-4 pl-4 text-xs italic text-white/40 whitespace-nowrap sticky left-0 bg-dash-surface z-10">
                     {sub.label}
                   </td>
-                  {periodHeaders.map((_, colIdx) => (
-                    <td
-                      key={colIdx}
-                      className="py-1 px-3 font-mono text-xs text-right text-white/40 whitespace-nowrap italic"
-                    >
-                      {sub.getValue(colIdx)}
-                    </td>
-                  ))}
+                  {periodHeaders.map((_, colIdx) => {
+                    const val = sub.getValue(colIdx)
+                    return (
+                      <td
+                        key={colIdx}
+                        className={cn(
+                          'py-1 px-3 font-mono text-xs text-right whitespace-nowrap italic',
+                          colIdx === 0 ? 'bg-white/[0.025]' : '',
+                          subValueColor(val),
+                        )}
+                      >
+                        {val}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))}
             </>
@@ -139,11 +167,11 @@ function SimpleTable({ columns, rows }: {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/[0.08]">
+          <tr className="border-b border-white/[0.10] bg-white/[0.02]">
             {columns.map((col) => (
               <th
                 key={col.header}
-                className="text-left py-2 px-3 text-xs uppercase tracking-wider text-white/30 font-medium whitespace-nowrap"
+                className="text-left py-2.5 px-3 text-xs uppercase tracking-wider text-white/30 font-medium whitespace-nowrap"
               >
                 {col.header}
               </th>
@@ -152,7 +180,13 @@ function SimpleTable({ columns, rows }: {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+            <tr
+              key={i}
+              className={cn(
+                'border-b border-white/[0.03] hover:bg-white/[0.03] hover:border-l-2 hover:border-l-accent/40 transition-colors',
+                i % 2 === 1 && 'bg-white/[0.015]',
+              )}
+            >
               {columns.map((col) => (
                 <td key={col.header} className="py-2 px-3 text-white/70 font-mono text-xs whitespace-nowrap">
                   {col.render(row)}
@@ -175,20 +209,22 @@ interface Props {
 export function FundamentalsTable({ tab, data, timeframe = 'annual' }: Props) {
   if (!data) return null
 
+  const needsArray = tab !== 'float'
+  if (needsArray && !Array.isArray(data)) return null
+
   // --- Float ---
   if (tab === 'float') {
     const f = data as FloatData
     return (
-      <div className="flex flex-col gap-4 py-2">
-        <span className="text-xs uppercase tracking-widest text-white/30">Float Summary</span>
+      <div className="flex flex-col gap-5 py-2">
         <div className="grid grid-cols-2 gap-4">
           {[
             { label: 'Free Float', value: f.free_float?.toLocaleString() ?? '—' },
             { label: 'Float %', value: f.free_float_percent !== null ? `${f.free_float_percent?.toFixed(2)}%` : '—' },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-white/[0.03] rounded-lg px-4 py-3">
-              <p className="text-xs text-white/40 mb-1">{label}</p>
-              <p className="text-lg font-display font-semibold text-white">{value}</p>
+            <div key={label} className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] rounded-xl px-5 py-4 border border-white/[0.07]">
+              <p className="text-xs text-white/40 mb-1.5">{label}</p>
+              <p className="text-xl font-display font-semibold text-white">{value}</p>
             </div>
           ))}
         </div>
@@ -256,7 +292,7 @@ export function FundamentalsTable({ tab, data, timeframe = 'annual' }: Props) {
     const allRows = data as IncomeStatementEntry[]
     const filtered = allRows
       .filter((r) =>
-        timeframe === 'annual' ? r.timeframe === 'annual' : r.fiscal_quarter !== null,
+        timeframe === 'annual' ? r.timeframe === 'annual' : r.timeframe === 'quarterly',
       )
       .sort((a, b) => b.period_end.localeCompare(a.period_end))
       .slice(0, 8)
@@ -336,7 +372,7 @@ export function FundamentalsTable({ tab, data, timeframe = 'annual' }: Props) {
     const allRows = data as BalanceSheetEntry[]
     const filtered = allRows
       .filter((r) =>
-        timeframe === 'annual' ? r.timeframe === 'annual' : r.fiscal_quarter !== null,
+        timeframe === 'annual' ? r.timeframe === 'annual' : r.timeframe === 'quarterly',
       )
       .sort((a, b) => b.period_end.localeCompare(a.period_end))
       .slice(0, 8)
@@ -358,7 +394,7 @@ export function FundamentalsTable({ tab, data, timeframe = 'annual' }: Props) {
     const allRows = data as CashFlowEntry[]
     const filtered = allRows
       .filter((r) =>
-        timeframe === 'annual' ? r.timeframe === 'annual' : r.fiscal_quarter !== null,
+        timeframe === 'annual' ? r.timeframe === 'annual' : r.timeframe === 'quarterly',
       )
       .sort((a, b) => b.period_end.localeCompare(a.period_end))
       .slice(0, 8)

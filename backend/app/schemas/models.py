@@ -126,6 +126,13 @@ class FloatData(BaseModel):
     effective_date: str | None = None
 
 
+class PriceChartResult(BaseModel):
+    ticker: str
+    timeframe: str
+    bars: list[OHLCBar]
+    latest_close: float
+
+
 class CompanyDetailsResponse(BaseModel):
     ticker: str
     name: str

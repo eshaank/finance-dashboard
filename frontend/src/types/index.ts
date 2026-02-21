@@ -38,6 +38,15 @@ export interface OHLCBar {
   close: number
 }
 
+export type ChartTimeframe = '1D' | '1W' | '1M' | '6M' | '12M' | '5Y' | 'Max'
+
+export interface PriceChartResult {
+  ticker: string
+  timeframe: string
+  bars: OHLCBar[]
+  latest_close: number
+}
+
 export interface InsideDayResult {
   ticker: string
   consecutive_inside_days: number

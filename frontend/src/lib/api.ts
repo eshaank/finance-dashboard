@@ -21,4 +21,6 @@ export const api = {
   getShortVolume: (ticker: string) => apiFetch(`/api/fundamentals/short-volume?ticker=${ticker.toUpperCase()}`),
   getFloat: (ticker: string) => apiFetch(`/api/fundamentals/float?ticker=${ticker.toUpperCase()}`),
   getCompanyDetails: (ticker: string) => apiFetch(`/api/company/details?ticker=${ticker.toUpperCase()}`),
+  getPriceChart: (ticker: string, timeframe: string) =>
+    apiFetch(`/api/price-chart?ticker=${encodeURIComponent(ticker.toUpperCase())}&timeframe=${encodeURIComponent(timeframe)}`),
 }
