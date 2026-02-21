@@ -13,7 +13,7 @@ Display the current system architecture.
 3. Display the architecture overview, data flow, and service map
 
 If these documents don't exist yet, suggest creating them with:
-- ASCII architecture diagram showing data flow
+- Mermaid architecture diagram showing data flow
 - Service responsibility table (Does / Does NOT)
 - Port assignments
 - Technology choices and WHY they were chosen

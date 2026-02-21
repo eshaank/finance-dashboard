@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Header } from './components/layout/Header'
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthPage } from './components/auth/AuthPage'
 import { Loader2 } from 'lucide-react'
+import type { TabId } from './components/layout/NavTabs'
 
 function App() {
   return (
@@ -14,6 +16,7 @@ function App() {
 
 function AppContent() {
   const { session, loading } = useAuth()
+  const [activeTab, setActiveTab] = useState<TabId>('global-economics')
 
   if (loading) {
     return (
@@ -29,8 +32,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-dash-bg grid-pattern">
-      <Header />
-      <DashboardLayout />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   )
 }

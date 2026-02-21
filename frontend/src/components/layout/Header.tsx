@@ -2,8 +2,15 @@ import { useState, useRef, useEffect } from 'react'
 import { Globe, RefreshCw, Clock, LogOut, User } from 'lucide-react'
 import { useClock } from '../../hooks/useClock'
 import { useAuth } from '../../contexts/AuthContext'
+import { HeaderNavTabs } from './NavTabs'
+import type { TabId } from './NavTabs'
 
-export function Header() {
+interface HeaderProps {
+  activeTab: TabId
+  onTabChange: (tab: TabId) => void
+}
+
+export function Header({ activeTab, onTabChange }: HeaderProps) {
   const now = useClock()
   const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -40,8 +47,8 @@ export function Header() {
   return (
     <header className="border-b border-white/5 bg-dash-surface/50 backdrop-blur-xl sticky top-0 z-50">
       <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex shrink-0 items-center gap-4">
             <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center accent-glow">
               <Globe className="w-4 h-4 text-white" />
             </div>
@@ -53,7 +60,9 @@ export function Header() {
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
+          <HeaderNavTabs activeTab={activeTab} onTabChange={onTabChange} />
+
+          <div className="flex shrink-0 items-center gap-5">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60">
               <Clock className="w-3.5 h-3.5 text-accent" />
               <span className="font-mono text-sm text-dash-text/80">{timeStr}</span>
