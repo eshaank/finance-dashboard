@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Globe, Mail, KeyRound, Github, Loader2 } from 'lucide-react'
+import { Globe, Mail, KeyRound, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 type AuthMode = 'signin' | 'magiclink'
@@ -39,7 +39,7 @@ export function AuthPage() {
     setLoading(false)
   }
 
-  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+  const handleOAuthSignIn = async (provider: 'google') => {
     setLoading(true)
     setMessage(null)
 
@@ -79,14 +79,6 @@ export function AuthPage() {
             >
               <GoogleIcon />
               Continue with Google
-            </button>
-            <button
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={loading}
-              className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm font-medium text-dash-text hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Github className="w-4 h-4" />
-              Continue with GitHub
             </button>
           </div>
 

@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     massive_api_key: str = ""
     massive_base_url: str = "https://api.massive.com"
     supabase_url: str = ""
-    supabase_jwt_secret: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
