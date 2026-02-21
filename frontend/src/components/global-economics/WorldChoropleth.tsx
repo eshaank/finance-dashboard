@@ -42,14 +42,14 @@ function interpolateOrangeGradient(t: number): string {
 }
 
 function buildColorScale(data: IndicatorData | null, indicatorId: string) {
-  if (!data) return (_v: number | null) => NO_DATA_COLOR
+  if (!data) return () => NO_DATA_COLOR
 
   const values = Object.values(data)
     .map((c) => c.value)
     .filter((v): v is number => v !== null)
 
   const [minV, maxV] = extent(values) as [number | undefined, number | undefined]
-  if (minV === undefined || maxV === undefined) return (_v: number | null) => NO_DATA_COLOR
+  if (minV === undefined || maxV === undefined) return () => NO_DATA_COLOR
 
   if (indicatorId === 'gdp') {
     const scale = scaleSequentialLog([Math.max(minV, 1), maxV], interpolateOrangeGradient)
