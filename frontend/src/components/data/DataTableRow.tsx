@@ -7,7 +7,7 @@ interface DataTableRowProps {
 
 function fmt(val: number | null, unit: string): string {
   if (val === null) return '—'
-  return `${val}${unit}`
+  return `${val.toLocaleString('en-US', { maximumFractionDigits: 2 })}${unit}`
 }
 
 export function DataTableRow({ point }: DataTableRowProps) {

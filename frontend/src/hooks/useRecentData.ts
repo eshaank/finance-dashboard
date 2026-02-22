@@ -6,6 +6,7 @@ export function useRecentData() {
   const { data, error, isLoading } = useSWR<EconomicDataPoint[]>(
     '/api/v1/economic-data',
     apiFetcher,
+    { refreshInterval: 300_000 },
   )
 
   return {

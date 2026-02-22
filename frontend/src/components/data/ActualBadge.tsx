@@ -19,7 +19,7 @@ export function ActualBadge({ point }: ActualBadgeProps) {
 
   return (
     <Badge variant={variantMap[point.status]}>
-      {point.actual}{point.unit}
+      {point.actual.toLocaleString('en-US', { maximumFractionDigits: 2 })}{point.unit}
     </Badge>
   )
 }

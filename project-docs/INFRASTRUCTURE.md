@@ -15,6 +15,7 @@
 | Variable | Required | Service | Description |
 |----------|----------|---------|-------------|
 | `MASSIVE_API_KEY` | Yes | Backend | API key for Polygon.io + Massive APIs |
+| `FRED_API_KEY` | Yes | Backend | API key for FRED (Federal Reserve Economic Data) |
 | `VITE_API_BASE_URL` | Yes | Frontend | Backend URL (e.g. `http://localhost:8000`) |
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL (e.g. `https://xxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon/publishable key |
@@ -40,7 +41,8 @@ just dev-frontend   # frontend only (port 5173)
 | Service | Purpose | Auth |
 |---------|---------|------|
 | Polygon.io | Price data (OHLC bars) + company reference data | `MASSIVE_API_KEY` as query param |
-| Massive API | Fundamentals, short interest, short volume, float | `MASSIVE_API_KEY` as query param |
+| Massive API | Fundamentals, short interest, short volume, float, Fed economic data | `MASSIVE_API_KEY` as query param |
+| FRED | Economic series (GDP, payrolls, etc.) + release calendar | `FRED_API_KEY` as query param |
 | Supabase Auth | User authentication (invite-only) | `VITE_SUPABASE_ANON_KEY`; backend uses JWKS (ES256) |
 | Supabase Postgres | User profiles table with RLS | Via Supabase Auth session |
 
@@ -75,6 +77,7 @@ just dev-frontend   # frontend only (port 5173)
    | Variable | Where | Notes |
    |----------|--------|--------|
    | `MASSIVE_API_KEY` | Backend (serverless) | Same as local |
+   | `FRED_API_KEY` | Backend (serverless) | Same as local |
    | `SUPABASE_URL` | Backend | e.g. `https://xxx.supabase.co` |
    | `VITE_API_BASE_URL` | Frontend (build) | Leave **empty** so API calls use same origin (`/api/...`) |
    | `VITE_SUPABASE_URL` | Frontend (build) | Same as `SUPABASE_URL` |

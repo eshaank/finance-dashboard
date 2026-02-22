@@ -19,6 +19,7 @@ export interface EconomicDataPoint {
   status: 'beat' | 'missed' | 'inline' | 'pending'
   date: string
   unit: string
+  category: string
 }
 
 export interface UpcomingEvent {
@@ -28,6 +29,10 @@ export interface UpcomingEvent {
   priority: 'HIGH' | 'MEDIUM' | 'LOW'
   category: string
   daysUntil: number
+  actual: number | null
+  forecast: number | null
+  previous: number | null
+  unit: string
 }
 
 export interface OHLCBar {
