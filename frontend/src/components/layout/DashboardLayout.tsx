@@ -1,4 +1,4 @@
-import { InsideDayScanner } from '../scanner/InsideDayScanner'
+import { ScannerTab } from '../scanner/ScannerTab'
 import { ResearchTab } from '../research/ResearchTab'
 import { GlobalEconomicsTab } from '../global-economics/GlobalEconomicsTab'
 import { USEconomicsTab } from '../us-economics/USEconomicsTab'
@@ -12,7 +12,7 @@ export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
   return (
     <main className="p-3 md:p-6 animate-fade-in">
       {activeTab === 'scanner' && (
-        <InsideDayScanner />
+        <ScannerTab />
       )}
       {activeTab === 'research' && (
         <ResearchTab />

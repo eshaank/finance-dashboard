@@ -43,3 +43,21 @@ def compute_compression(bars: list[DailyBar], consecutive: int) -> tuple[str | N
     compression_pct = round((latest_range / mother_range) * 100, 1) if mother_range > 0 else None
 
     return mother.date, compression_pct
+
+
+def scan_ticker_for_inside_days(bars: list[DailyBar]) -> dict | None:
+    """Run inside day analysis on a list of bars.
+
+    Returns result dict if consecutive > 0, else None.
+    """
+    consecutive, inside_dates = count_inside_days(bars)
+    if consecutive <= 0:
+        return None
+    mother_bar_date, compression_pct = compute_compression(bars, consecutive)
+    return {
+        "consecutive_inside_days": consecutive,
+        "inside_day_dates": inside_dates,
+        "mother_bar_date": mother_bar_date,
+        "compression_pct": compression_pct,
+        "latest_close": bars[-1].close,
+    }

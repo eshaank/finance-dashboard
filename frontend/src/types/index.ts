@@ -157,6 +157,25 @@ export interface CompanyDetails {
   logo_url: string | null
 }
 
+export interface BulkInsideDayItem {
+  ticker: string
+  name: string | null
+  consecutive_inside_days: number
+  compression_pct: number | null
+  mother_bar_date: string | null
+  latest_close: number
+  market_cap: number | null
+  inside_day_dates: string[]
+}
+
+export interface BulkInsideDayResult {
+  results: BulkInsideDayItem[]
+  total_scanned: number
+  total_with_inside_days: number
+  scan_date: string
+  preset: string
+}
+
 // ── API Envelope ────────────────────────────────────────────────────────────
 
 export interface ApiMeta {
