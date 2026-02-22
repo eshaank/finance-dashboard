@@ -37,7 +37,11 @@ test-frontend:
     cd frontend && npx vitest run
 
 # Lint + typecheck (mirrors CI)
-check: check-frontend
+check: check-backend check-frontend
+
+# Backend lint
+check-backend:
+    cd backend && uv run ruff check .
 
 # Frontend lint + typecheck
 check-frontend:

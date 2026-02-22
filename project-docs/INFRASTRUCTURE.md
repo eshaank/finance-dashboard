@@ -24,12 +24,15 @@
 ## Running Locally
 
 ```bash
-# Backend (from backend/)
-source .venv/bin/activate
-uvicorn app.main:app --reload
+just setup   # install backend + frontend dependencies
+just dev     # run both dev servers concurrently
+```
 
-# Frontend (from frontend/)
-npm run dev
+Or run individually:
+
+```bash
+just dev-backend    # backend only (port 8000)
+just dev-frontend   # frontend only (port 5173)
 ```
 
 ## Services & Dependencies
@@ -48,7 +51,7 @@ npm run dev
 | Frontend | React + TypeScript + Vite | React 19, Vite 7 |
 | Data Fetching | SWR | v2 |
 | Styling | Tailwind CSS | v3 |
-| Backend | FastAPI + Python | Python 3.12+ |
+| Backend | FastAPI + Python | Python 3.13 |
 | HTTP Client | httpx (async) + tenacity (retry) | |
 | Caching | cachetools (TTLCache) | |
 | Rate Limiting | slowapi | |

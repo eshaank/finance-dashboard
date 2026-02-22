@@ -1,13 +1,35 @@
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { ChartTimeframe, OHLCBar } from '../../types'
 import { cn } from '../../lib/utils'
 
 const TIMEFRAMES: ChartTimeframe[] = ['1D', '1W', '1M', '6M', '12M', '5Y', 'Max']
 
-const VIEW_W = 700
+const DEFAULT_VIEW_W = 700
 const VIEW_H = 260
 const PAD_X = 52
+const PAD_X_SM = 36
 const PAD_TOP = 40
 const PAD_BOT = 28
+
+function useContainerWidth(defaultWidth: number) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(defaultWidth)
+
+  const updateWidth = useCallback(() => {
+    if (ref.current) {
+      setWidth(ref.current.clientWidth || defaultWidth)
+    }
+  }, [defaultWidth])
+
+  useEffect(() => {
+    updateWidth()
+    const observer = new ResizeObserver(updateWidth)
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [updateWidth])
+
+  return { ref, width }
+}
 
 interface Props {
   ticker: string
@@ -23,12 +45,15 @@ function fmtPrice(v: number): string {
 }
 
 export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTimeframeChange }: Props) {
-  const chartW = VIEW_W - PAD_X * 2
+  const { ref: containerRef, width: containerWidth } = useContainerWidth(DEFAULT_VIEW_W)
+  const VIEW_W = Math.max(containerWidth, 300)
+  const padX = VIEW_W < 500 ? PAD_X_SM : PAD_X
+  const chartW = VIEW_W - padX * 2
   const chartH = VIEW_H - PAD_TOP - PAD_BOT
 
   if (loading) {
     return (
-      <div>
+      <div ref={containerRef}>
         <div className="mb-3">
           <span className="text-xs uppercase tracking-widest text-white/50">{ticker}</span>
         </div>
@@ -54,7 +79,7 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
   const range = maxVal - minVal || 1
 
   function toX(i: number) {
-    return PAD_X + (i / (bars.length - 1)) * chartW
+    return padX + (i / (bars.length - 1)) * chartW
   }
   function toY(v: number) {
     return PAD_TOP + chartH - ((v - minVal) / range) * chartH
@@ -92,7 +117,7 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
   const lastY = toY(lastClose)
 
   return (
-    <div>
+    <div ref={containerRef}>
       <div className="mb-2">
         <span className="text-xs uppercase tracking-widest text-white/50 block mb-0.5">{ticker}</span>
         <div className="flex items-baseline gap-3">
@@ -140,8 +165,8 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
         {gridValues.map((v) => (
           <g key={v}>
             <line
-              x1={PAD_X}
-              x2={VIEW_W - PAD_X}
+              x1={padX}
+              x2={VIEW_W - padX}
               y1={toY(v)}
               y2={toY(v)}
               stroke="rgba(255,255,255,0.06)"
@@ -149,7 +174,7 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
               strokeDasharray="4 4"
             />
             <text
-              x={VIEW_W - PAD_X + 4}
+              x={VIEW_W - padX + 4}
               y={toY(v) + 4}
               textAnchor="start"
               fontSize={9}
@@ -163,8 +188,8 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
 
         {/* Baseline (x-axis) */}
         <line
-          x1={PAD_X}
-          x2={VIEW_W - PAD_X}
+          x1={padX}
+          x2={VIEW_W - padX}
           y1={PAD_TOP + chartH}
           y2={PAD_TOP + chartH}
           stroke="rgba(255,255,255,0.08)"
@@ -195,7 +220,7 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
 
         {/* X-axis date labels */}
         <text
-          x={PAD_X}
+          x={padX}
           y={VIEW_H - 4}
           textAnchor="start"
           fontSize={9}
@@ -205,7 +230,7 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
           {bars[0].date}
         </text>
         <text
-          x={VIEW_W - PAD_X}
+          x={VIEW_W - padX}
           y={VIEW_H - 4}
           textAnchor="end"
           fontSize={9}

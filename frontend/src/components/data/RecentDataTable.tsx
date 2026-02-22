@@ -6,25 +6,25 @@ export function RecentDataTable() {
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
-      <div className="border-b border-white/5 px-5 py-4">
+      <div className="border-b border-white/5 px-3 py-3 sm:px-5 sm:py-4">
         <h2 className="font-display text-base font-semibold text-dash-text">Recent Economic Data</h2>
         <p className="text-xs text-white/40 mt-0.5">Latest releases vs forecasts</p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-white/5">
-              <th className="px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-widest text-white/30">
+              <th className="px-3 sm:px-5 py-2.5 text-left text-[10px] font-medium uppercase tracking-widest text-white/30">
                 Indicator
               </th>
-              <th className="py-2.5 pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
+              <th className="py-2.5 pr-3 sm:pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
                 Previous
               </th>
-              <th className="py-2.5 pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
+              <th className="py-2.5 pr-3 sm:pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
                 Forecast
               </th>
-              <th className="py-2.5 pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
+              <th className="py-2.5 pr-3 sm:pr-5 text-right text-[10px] font-medium uppercase tracking-widest text-white/30">
                 Actual
               </th>
             </tr>

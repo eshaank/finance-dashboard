@@ -1,9 +1,9 @@
 import logging
 from functools import lru_cache
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-import jwt
 from jwt import PyJWKClient
 
 from app.core.config import Settings, get_settings

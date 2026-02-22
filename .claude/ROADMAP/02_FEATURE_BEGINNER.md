@@ -1,0 +1,6 @@
+- Make a beginner friendly version to researching stocks.
+- Implement an AI guide that can help answer questions
+    - Use tool calling to retrieve data 
+    - RAG system for stocks? 
+        - Database per stock could work
+        - [FUTURE] Use Datalake + Iceberg 

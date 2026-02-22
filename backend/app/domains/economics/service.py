@@ -1,5 +1,5 @@
-from app.domains.economics.schemas import EconomicDataPoint, UpcomingEvent
 from app.data.mock_data import ECONOMIC_DATA, UPCOMING_EVENTS
+from app.domains.economics.schemas import EconomicDataPoint, UpcomingEvent
 
 
 def get_economic_data() -> list[EconomicDataPoint]:

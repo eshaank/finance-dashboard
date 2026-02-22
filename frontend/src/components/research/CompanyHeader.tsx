@@ -33,10 +33,10 @@ export function CompanyHeader({ input, onInputChange, onSubmit, ticker, company,
 
   return (
     <div
-      className="glass-card rounded-xl px-5 py-3.5 flex items-center gap-4 flex-wrap"
+      className="glass-card rounded-xl px-3 py-3 sm:px-5 sm:py-3.5 flex items-center gap-3 sm:gap-4 flex-wrap"
       style={glowStyle}
     >
-      <form onSubmit={onSubmit} className="flex items-center gap-2 shrink-0">
+      <form onSubmit={onSubmit} className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
         <div className="relative">
           <svg
             className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30"
@@ -52,7 +52,7 @@ export function CompanyHeader({ input, onInputChange, onSubmit, ticker, company,
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="TICKER"
-            className="w-36 bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white uppercase placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
+            className="w-full sm:w-36 bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white uppercase placeholder-white/30 focus:outline-none focus:border-white/30 transition-colors"
           />
         </div>
         <button

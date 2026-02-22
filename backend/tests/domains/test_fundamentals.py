@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 
-
 MOCK_BALANCE_SHEET_RAW = [
     {
         "period_end": "2024-12-31",

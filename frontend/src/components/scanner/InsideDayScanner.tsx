@@ -16,10 +16,10 @@ export function InsideDayScanner() {
   }
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-3 md:p-6">
       <h2 className="font-display text-lg font-semibold text-white mb-4">Inside Day Scanner</h2>
 
-      <form onSubmit={handleSubmit} className="flex gap-3 mb-6 max-w-sm">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 mb-4 md:mb-6 max-w-sm">
         <input
           type="text"
           value={input}
@@ -36,7 +36,7 @@ export function InsideDayScanner() {
         </button>
       </form>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4 md:gap-6">
         {/* Chart column */}
         <div>
           {loading && (
