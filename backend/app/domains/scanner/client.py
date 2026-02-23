@@ -8,7 +8,7 @@ from app.core.config import get_settings
 from app.domains.market.client import DailyBar
 from app.shared.http_client import fetch_with_retry
 
-_grouped_cache: TTLCache[str, list] = TTLCache(maxsize=10, ttl=600)
+_grouped_cache: TTLCache[str, list] = TTLCache(maxsize=32, ttl=600)
 _details_cache: TTLCache[str, dict] = TTLCache(maxsize=2000, ttl=86400)
 
 
@@ -35,7 +35,7 @@ async def fetch_grouped_daily(
 
 
 async def fetch_grouped_multi_day(
-    client: httpx.AsyncClient, num_days: int = 5,
+    client: httpx.AsyncClient, num_days: int = 20,
 ) -> dict[str, list[DailyBar]]:
     """Fetch grouped daily bars for the last num_days trading days.
 
@@ -66,6 +66,7 @@ async def fetch_grouped_multi_day(
                 high=float(r["h"]),
                 low=float(r["l"]),
                 close=float(r["c"]),
+                volume=float(r.get("v", 0)),
             )
             ticker_bars.setdefault(ticker, []).append(bar)
 
@@ -93,6 +94,7 @@ async def fetch_ticker_details(
     detail = {
         "name": results.get("name"),
         "market_cap": results.get("market_cap"),
+        "type": results.get("type"),
     }
     _details_cache[ticker] = detail
     return detail

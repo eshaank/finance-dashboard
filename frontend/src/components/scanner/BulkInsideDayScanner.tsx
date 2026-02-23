@@ -1,7 +1,7 @@
-import { useState, Fragment } from 'react'
+import { useState } from 'react'
 import { useBulkInsideDays } from '../../hooks/useBulkInsideDays'
 import { BulkScanResultRow } from './BulkScanResultRow'
-import { BulkScanDetail } from './BulkScanDetail'
+import type { BulkInsideDayItem } from '../../types'
 
 type Preset = 'all' | 'spy500' | 'nasdaq100'
 
@@ -11,7 +11,6 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: 'nasdaq100', label: 'NASDAQ 100' },
 ]
 
-/** Parse cap input: accepts numbers, commas, and K/M/B/T suffixes (e.g. "1B", "500M"). */
 function parseCapInput(raw: string): number | null {
   const s = raw.trim().replace(/,/g, '')
   if (!s) return null
@@ -27,38 +26,75 @@ function parseCapInput(raw: string): number | null {
   return n
 }
 
-const CAP_SLIDER_STEPS: { value: number; label: string }[] = [
-  { value: 0, label: '0' },
-  { value: 1e6, label: '1M' },
-  { value: 10e6, label: '10M' },
-  { value: 100e6, label: '100M' },
-  { value: 1e9, label: '1B' },
-  { value: 10e9, label: '10B' },
-  { value: 100e9, label: '100B' },
-]
-
-function getSliderIndex(capStr: string): number {
-  const num = parseCapInput(capStr)
-  if (num === null) return 0
-  let best = 0
-  for (let i = 0; i < CAP_SLIDER_STEPS.length; i++) {
-    if (CAP_SLIDER_STEPS[i].value <= num) best = i
-  }
-  return best
-}
-
 interface ScanParams {
   preset: string
   minCap?: number
   maxCap?: number
+  minPrice?: number
+  minAvgVolume?: number
+  minRelativeVolume?: number
+  minAtrPct?: number
+  excludeEtfs?: boolean
 }
 
-export function BulkInsideDayScanner() {
+interface Props {
+  selectedTicker: string | null
+  onTickerSelect: (ticker: string | null, item?: BulkInsideDayItem) => void
+}
+
+function FilterInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  prefix,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  prefix?: string
+}) {
+  return (
+    <div className="min-w-0">
+      <span className="block text-[9px] uppercase tracking-[0.1em] text-dash-muted/50 font-medium mb-1.5">
+        {label}
+      </span>
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dash-muted/40 text-xs">
+            {prefix}
+          </span>
+        )}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`
+            w-full bg-white/[0.03] border border-white/[0.06] rounded-lg
+            ${prefix ? 'pl-6' : 'pl-3'} pr-3 py-1.5
+            text-dash-text text-xs font-mono placeholder-dash-muted/30
+            focus:outline-none focus:border-accent/40 focus:bg-white/[0.04]
+            transition-colors duration-150
+          `}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function BulkInsideDayScanner({ selectedTicker, onTickerSelect }: Props) {
   const [preset, setPreset] = useState<Preset>('all')
   const [minCap, setMinCap] = useState('')
   const [maxCap, setMaxCap] = useState('')
+  const [minPrice, setMinPrice] = useState('10')
+  const [minAvgVolume, setMinAvgVolume] = useState('500000')
+  const [minRelativeVolume, setMinRelativeVolume] = useState('')
+  const [minAtrPct, setMinAtrPct] = useState('')
+  const [excludeEtfs, setExcludeEtfs] = useState(true)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [scanParams, setScanParams] = useState<ScanParams | null>(null)
-  const [expandedTicker, setExpandedTicker] = useState<string | null>(null)
 
   const { data, loading, error } = useBulkInsideDays(scanParams)
 
@@ -68,188 +104,184 @@ export function BulkInsideDayScanner() {
     const max = parseCapInput(maxCap)
     if (min != null) params.minCap = min
     if (max != null) params.maxCap = max
+    const price = parseFloat(minPrice)
+    if (!isNaN(price) && price > 0) params.minPrice = price
+    const vol = parseFloat(minAvgVolume)
+    if (!isNaN(vol) && vol > 0) params.minAvgVolume = vol
+    const relVol = parseFloat(minRelativeVolume)
+    if (!isNaN(relVol) && relVol > 0) params.minRelativeVolume = relVol
+    const atr = parseFloat(minAtrPct)
+    if (!isNaN(atr) && atr > 0) params.minAtrPct = atr
+    params.excludeEtfs = excludeEtfs
     setScanParams(params)
-    setExpandedTicker(null)
+    onTickerSelect(null)
+  }
+
+  function handleRowClick(item: BulkInsideDayItem) {
+    const next = selectedTicker === item.ticker ? null : item.ticker
+    onTickerSelect(next, next ? item : undefined)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') handleScan()
   }
 
   return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="glass-card p-4 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          {/* Universe */}
-          <div>
-            <span className="text-white/40 uppercase tracking-wider text-[10px] font-medium">Universe</span>
-            <div className="mt-2 flex gap-2">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setPreset(p.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    preset === p.id
-                      ? 'bg-accent text-white'
-                      : 'bg-white/5 text-white/40 hover:text-white/60 border border-white/10'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+    <div className="space-y-3">
+      <div className="glass-card p-4" onKeyDown={handleKeyDown}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="min-w-0">
+              <span className="block text-[9px] uppercase tracking-[0.1em] text-dash-muted/50 font-medium mb-1.5">
+                Universe
+              </span>
+              <div className="flex gap-1">
+                {PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setPreset(p.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                      preset === p.id
+                        ? 'bg-accent text-white shadow-sm shadow-accent/20'
+                        : 'bg-white/[0.04] text-dash-muted/60 hover:text-dash-muted hover:bg-white/[0.06] border border-white/[0.05]'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 items-end">
+              <FilterInput label="Min Cap" value={minCap} onChange={setMinCap} placeholder="1B" prefix="$" />
+              <span className="text-dash-muted/30 text-xs pb-2">to</span>
+              <FilterInput label="Max Cap" value={maxCap} onChange={setMaxCap} placeholder="100B" prefix="$" />
+            </div>
+
+            <FilterInput label="Min Price" value={minPrice} onChange={setMinPrice} placeholder="10" prefix="$" />
+            <FilterInput label="Avg Volume" value={minAvgVolume} onChange={setMinAvgVolume} placeholder="500K" />
+
+            <div className="flex items-end gap-2 ml-auto">
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="px-3 py-1.5 rounded-lg text-xs text-dash-muted/50 hover:text-dash-muted hover:bg-white/[0.04] transition-colors duration-150 border border-transparent hover:border-white/[0.05]"
+              >
+                <span className="flex items-center gap-1">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className={`transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                  More
+                </span>
+              </button>
+
+              <button
+                onClick={handleScan}
+                disabled={loading}
+                className="px-5 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <span className="w-3 h-3 border-[1.5px] border-white/20 border-t-white/70 rounded-full animate-spin" />
+                    Scanning
+                  </>
+                ) : (
+                  'Scan'
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Market Cap Filter */}
-          <div className="min-w-0">
-            <span className="text-white/40 uppercase tracking-wider text-[10px] font-medium">Market Cap Filter</span>
-            <div className="mt-2 flex gap-2 items-center">
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30 text-xs">$</span>
-                <input
-                  type="text"
-                  value={minCap}
-                  onChange={(e) => setMinCap(e.target.value)}
-                  placeholder="e.g. 1B"
-                  className="w-28 bg-white/5 border border-white/10 rounded-lg pl-5 pr-3 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-white/30"
-                />
-              </div>
-              <span className="text-white/30 text-xs">to</span>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30 text-xs">$</span>
-                <input
-                  type="text"
-                  value={maxCap}
-                  onChange={(e) => setMaxCap(e.target.value)}
-                  placeholder="e.g. 10B"
-                  className="w-28 bg-white/5 border border-white/10 rounded-lg pl-5 pr-3 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-white/30"
-                />
-              </div>
-            </div>
-            {/* Sliders: short notation M/B */}
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
-              <div>
-                <div className="flex justify-between text-[10px] text-white/40 mb-0.5">
-                  <span>Min</span>
-                  <span className="font-mono">{CAP_SLIDER_STEPS[getSliderIndex(minCap)].label}</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={CAP_SLIDER_STEPS.length - 1}
-                  value={getSliderIndex(minCap)}
-                  onChange={(e) => setMinCap(CAP_SLIDER_STEPS[Number(e.target.value)].label)}
-                  className="w-full h-1.5 accent-accent bg-white/10 rounded appearance-none cursor-pointer"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between text-[10px] text-white/40 mb-0.5">
-                  <span>Max</span>
-                  <span className="font-mono">{CAP_SLIDER_STEPS[getSliderIndex(maxCap)].label}</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={CAP_SLIDER_STEPS.length - 1}
-                  value={getSliderIndex(maxCap)}
-                  onChange={(e) => setMaxCap(CAP_SLIDER_STEPS[Number(e.target.value)].label)}
-                  className="w-full h-1.5 accent-accent bg-white/10 rounded appearance-none cursor-pointer"
-                />
-              </div>
-            </div>
-            <div className="mt-1.5 flex gap-1">
-              {['1B', '10B', '100B'].map((chip) => (
-                <button
-                  key={chip}
-                  onClick={() => {
-                    setMinCap(chip)
-                    setMaxCap(chip)
-                  }}
-                  className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/30 hover:text-white/50 cursor-pointer transition-colors"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+          {showAdvanced && (
+            <div className="flex flex-wrap items-end gap-4 pt-3 border-t border-white/[0.04] animate-slide-fade">
+              <FilterInput label="Min Rel Volume" value={minRelativeVolume} onChange={setMinRelativeVolume} placeholder="0.7" />
+              <FilterInput label="Min ATR %" value={minAtrPct} onChange={setMinAtrPct} placeholder="3" />
 
-        {/* Scan button */}
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={handleScan}
-            disabled={loading}
-            className="px-6 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2 transition-opacity"
-          >
-            {loading ? (
-              <>
-                <span className="animate-spin inline-block w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full" />
-                Scanning...
-              </>
-            ) : (
-              'Scan for Inside Days'
-            )}
-          </button>
+              <div className="min-w-0">
+                <span className="block text-[9px] uppercase tracking-[0.1em] text-dash-muted/50 font-medium mb-1.5">
+                  Exclude ETFs
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={excludeEtfs}
+                    onChange={(e) => setExcludeEtfs(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-[18px] bg-white/10 rounded-full peer peer-checked:bg-accent peer-checked:after:translate-x-[14px] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/50 after:rounded-full after:h-[14px] after:w-[14px] after:transition-all peer-checked:after:bg-white transition-colors" />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Error */}
-      {error && <p className="text-red-400 text-sm px-1">{error}</p>}
-
-      {/* Stats bar */}
-      {data && !loading && (
-        <div className="flex items-center gap-2 text-xs text-white/40 font-mono px-1">
-          Scanned {data.total_scanned} tickers · {data.total_with_inside_days} with inside days · as of {data.scan_date}
-        </div>
+      {error && (
+        <div className="px-1 py-2 text-dash-red text-xs">{error}</div>
       )}
 
-      {/* Loading skeleton */}
       {loading && (
-        <div className="glass-card p-4 space-y-2">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded bg-white/5" />
+        <div className="glass-card p-3 space-y-1.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-11 rounded-lg bg-white/[0.02] animate-pulse" />
           ))}
         </div>
       )}
 
-      {/* Empty state */}
-      {data && !loading && data.results.length === 0 && (
-        <div className="glass-card p-8 text-center text-white/40 text-sm">
-          No inside days found. Try adjusting your filters.
-        </div>
-      )}
-
-      {/* Results table */}
-      {data && !loading && data.results.length > 0 && (
+      {data && !loading && (
         <div className="glass-card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="w-6" />
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Ticker</th>
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Name</th>
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Days</th>
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Compression</th>
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Close</th>
-                <th className="text-[10px] font-medium uppercase tracking-widest text-white/30 text-left px-3 py-2">Mkt Cap</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.results.map((item) => (
-                <Fragment key={item.ticker}>
-                  <BulkScanResultRow
-                    item={item}
-                    isExpanded={expandedTicker === item.ticker}
-                    onToggle={() => setExpandedTicker(expandedTicker === item.ticker ? null : item.ticker)}
-                  />
-                  {expandedTicker === item.ticker && (
-                    <tr>
-                      <td colSpan={7}>
-                        <BulkScanDetail ticker={item.ticker} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+          <div className="px-4 py-2.5 border-b border-white/[0.04] flex items-center justify-between">
+            <span className="text-[10px] text-dash-muted/50 font-mono tracking-wide">
+              {data.total_scanned.toLocaleString()} scanned
+              <span className="mx-1.5 text-white/10">|</span>
+              <span className="text-dash-green/70">{data.total_with_inside_days}</span> with inside days
+            </span>
+            <span className="text-[10px] text-dash-muted/30 font-mono">
+              {data.scan_date}
+            </span>
+          </div>
+
+          {data.results.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-dash-muted/40 text-sm">No inside days found with current filters.</p>
+              <p className="text-dash-muted/25 text-xs mt-1">Try broadening your search criteria.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/[0.04]">
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-left px-4 py-2">Ticker</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-center px-3 py-2">Days</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-left px-3 py-2">Compr.</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-right px-3 py-2">Price</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-right px-3 py-2 hidden md:table-cell">Mkt Cap</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-right px-3 py-2 hidden lg:table-cell">Avg Vol</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-right px-3 py-2 hidden xl:table-cell">Rel Vol</th>
+                    <th className="text-[9px] font-medium uppercase tracking-[0.12em] text-dash-muted/40 text-right px-3 py-2 hidden xl:table-cell">ATR%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.02]">
+                  {data.results.map((item) => (
+                    <BulkScanResultRow
+                      key={item.ticker}
+                      item={item}
+                      isSelected={selectedTicker === item.ticker}
+                      onSelect={() => handleRowClick(item)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -22,6 +22,11 @@ class BulkInsideDayItem(BaseModel):
     latest_close: float
     market_cap: float | None
     inside_day_dates: list[str]
+    avg_volume: float | None = None
+    today_volume: float | None = None
+    relative_volume: float | None = None
+    atr_pct: float | None = None
+    ticker_type: str | None = None
 
 
 class BulkInsideDayResult(BaseModel):
