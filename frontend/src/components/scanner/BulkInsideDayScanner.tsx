@@ -11,6 +11,42 @@ const PRESETS: { id: Preset; label: string }[] = [
   { id: 'nasdaq100', label: 'NASDAQ 100' },
 ]
 
+/** Parse cap input: accepts numbers, commas, and K/M/B/T suffixes (e.g. "1B", "500M"). */
+function parseCapInput(raw: string): number | null {
+  const s = raw.trim().replace(/,/g, '')
+  if (!s) return null
+  const match = s.match(/^([\d.]+)\s*([KMBTkmbt])?$/)
+  if (!match) return null
+  let n = parseFloat(match[1])
+  if (Number.isNaN(n)) return null
+  const suffix = (match[2] ?? '').toUpperCase()
+  if (suffix === 'K') n *= 1e3
+  else if (suffix === 'M') n *= 1e6
+  else if (suffix === 'B') n *= 1e9
+  else if (suffix === 'T') n *= 1e12
+  return n
+}
+
+const CAP_SLIDER_STEPS: { value: number; label: string }[] = [
+  { value: 0, label: '0' },
+  { value: 1e6, label: '1M' },
+  { value: 10e6, label: '10M' },
+  { value: 100e6, label: '100M' },
+  { value: 1e9, label: '1B' },
+  { value: 10e9, label: '10B' },
+  { value: 100e9, label: '100B' },
+]
+
+function getSliderIndex(capStr: string): number {
+  const num = parseCapInput(capStr)
+  if (num === null) return 0
+  let best = 0
+  for (let i = 0; i < CAP_SLIDER_STEPS.length; i++) {
+    if (CAP_SLIDER_STEPS[i].value <= num) best = i
+  }
+  return best
+}
+
 interface ScanParams {
   preset: string
   minCap?: number
@@ -28,10 +64,10 @@ export function BulkInsideDayScanner() {
 
   function handleScan() {
     const params: ScanParams = { preset }
-    const min = parseFloat(minCap)
-    const max = parseFloat(maxCap)
-    if (!isNaN(min)) params.minCap = min
-    if (!isNaN(max)) params.maxCap = max
+    const min = parseCapInput(minCap)
+    const max = parseCapInput(maxCap)
+    if (min != null) params.minCap = min
+    if (max != null) params.maxCap = max
     setScanParams(params)
     setExpandedTicker(null)
   }
@@ -62,7 +98,7 @@ export function BulkInsideDayScanner() {
           </div>
 
           {/* Market Cap Filter */}
-          <div>
+          <div className="min-w-0">
             <span className="text-white/40 uppercase tracking-wider text-[10px] font-medium">Market Cap Filter</span>
             <div className="mt-2 flex gap-2 items-center">
               <div className="relative">
@@ -71,7 +107,7 @@ export function BulkInsideDayScanner() {
                   type="text"
                   value={minCap}
                   onChange={(e) => setMinCap(e.target.value)}
-                  placeholder="Min"
+                  placeholder="e.g. 1B"
                   className="w-28 bg-white/5 border border-white/10 rounded-lg pl-5 pr-3 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-white/30"
                 />
               </div>
@@ -82,24 +118,55 @@ export function BulkInsideDayScanner() {
                   type="text"
                   value={maxCap}
                   onChange={(e) => setMaxCap(e.target.value)}
-                  placeholder="Max"
+                  placeholder="e.g. 10B"
                   className="w-28 bg-white/5 border border-white/10 rounded-lg pl-5 pr-3 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-white/30"
                 />
               </div>
             </div>
+            {/* Sliders: short notation M/B */}
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
+              <div>
+                <div className="flex justify-between text-[10px] text-white/40 mb-0.5">
+                  <span>Min</span>
+                  <span className="font-mono">{CAP_SLIDER_STEPS[getSliderIndex(minCap)].label}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={CAP_SLIDER_STEPS.length - 1}
+                  value={getSliderIndex(minCap)}
+                  onChange={(e) => setMinCap(CAP_SLIDER_STEPS[Number(e.target.value)].label)}
+                  className="w-full h-1.5 accent-accent bg-white/10 rounded appearance-none cursor-pointer"
+                />
+              </div>
+              <div>
+                <div className="flex justify-between text-[10px] text-white/40 mb-0.5">
+                  <span>Max</span>
+                  <span className="font-mono">{CAP_SLIDER_STEPS[getSliderIndex(maxCap)].label}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={CAP_SLIDER_STEPS.length - 1}
+                  value={getSliderIndex(maxCap)}
+                  onChange={(e) => setMaxCap(CAP_SLIDER_STEPS[Number(e.target.value)].label)}
+                  className="w-full h-1.5 accent-accent bg-white/10 rounded appearance-none cursor-pointer"
+                />
+              </div>
+            </div>
             <div className="mt-1.5 flex gap-1">
-              {['1B', '10B', '100B'].map((chip) => {
-                const value = chip === '1B' ? '1000000000' : chip === '10B' ? '10000000000' : '100000000000'
-                return (
-                  <button
-                    key={chip}
-                    onClick={() => setMinCap(value)}
-                    className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/30 hover:text-white/50 cursor-pointer transition-colors"
-                  >
-                    {chip}
-                  </button>
-                )
-              })}
+              {['1B', '10B', '100B'].map((chip) => (
+                <button
+                  key={chip}
+                  onClick={() => {
+                    setMinCap(chip)
+                    setMaxCap(chip)
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/30 hover:text-white/50 cursor-pointer transition-colors"
+                >
+                  {chip}
+                </button>
+              ))}
             </div>
           </div>
         </div>
