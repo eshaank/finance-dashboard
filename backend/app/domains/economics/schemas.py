@@ -13,6 +13,7 @@ class EconomicDataPoint(BaseModel):
     status: Literal["beat", "missed", "inline", "pending"]
     date: str
     unit: str
+    category: str = ""
 
 
 class UpcomingEvent(BaseModel):
@@ -22,3 +23,7 @@ class UpcomingEvent(BaseModel):
     priority: Literal["HIGH", "MEDIUM", "LOW"]
     category: str
     daysUntil: int
+    actual: float | None = None
+    forecast: float | None = None
+    previous: float | None = None
+    unit: str = ""

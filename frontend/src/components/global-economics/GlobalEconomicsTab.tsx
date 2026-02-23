@@ -22,11 +22,11 @@ export function GlobalEconomicsTab() {
   const displayedCountry = hoveredCountry ?? selectedCountry
 
   return (
-    <div className="flex w-full flex-col gap-6 md:flex-row" style={{ minHeight: '520px' }}>
+    <div className="flex w-full flex-col gap-4 md:gap-6 md:flex-row min-h-[300px] md:min-h-[520px]">
       {/* Left: map */}
       <div className="min-w-0 md:flex-[0_0_55%]">
         <div className="glass-card h-full rounded-xl overflow-hidden flex flex-col">
-          <div className="border-b border-white/5 px-5 py-4 shrink-0">
+          <div className="border-b border-white/5 px-3 py-3 sm:px-5 sm:py-4 shrink-0">
             <h2 className="font-display text-base font-semibold text-dash-text">
               Economic Map
             </h2>
@@ -56,7 +56,7 @@ export function GlobalEconomicsTab() {
       {/* Right: country detail */}
       <div className="min-w-0 md:flex-[0_0_45%]">
         <div className="glass-card h-full rounded-xl overflow-hidden">
-          <div className="border-b border-white/5 px-5 py-4">
+          <div className="border-b border-white/5 px-3 py-3 sm:px-5 sm:py-4">
             <h2 className="font-display text-base font-semibold text-dash-text">
               Country Profile
             </h2>

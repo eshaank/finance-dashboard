@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Shared API key used for both Polygon.io and Massive API
     massive_api_key: str = ""
     massive_base_url: str = "https://api.massive.com"
+    # FRED (Federal Reserve Economic Data)
+    fred_api_key: str = ""
+    fred_base_url: str = "https://api.stlouisfed.org/fred"
     supabase_url: str = ""
     rate_limit: str = "60/minute"
 

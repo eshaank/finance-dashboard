@@ -6,6 +6,7 @@ export function useUpcomingEvents() {
   const { data, error, isLoading } = useSWR<UpcomingEvent[]>(
     '/api/v1/upcoming-events',
     apiFetcher,
+    { refreshInterval: 300_000 },
   )
 
   return {

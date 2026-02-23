@@ -1,7 +1,6 @@
 from app.domains.market.client import CHART_TIMEFRAMES, DailyBar
 from app.domains.market.schemas import OHLCBar
 
-
 ALLOWED_TIMEFRAMES = list(CHART_TIMEFRAMES.keys())
 
 

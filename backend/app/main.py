@@ -1,16 +1,16 @@
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import AppException, app_exception_handler
 from app.core.middleware import RequestLoggingMiddleware
 from app.core.rate_limit import limiter
-from app.api.v1.router import api_router
 from app.shared.http_client import create_async_client
 
 
@@ -26,7 +26,10 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="Bloomberg terminal-inspired finance dashboard API. Proxies Polygon.io and Massive API for market data, fundamentals, and technical analysis.",
+    description=(
+        "Bloomberg terminal-inspired finance dashboard API. "
+        "Proxies Polygon.io and Massive API for market data, fundamentals, and technical analysis."
+    ),
     debug=settings.debug,
     lifespan=lifespan,
     openapi_tags=[

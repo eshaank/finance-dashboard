@@ -1,9 +1,7 @@
-import { MarketIndicesGrid } from '../market/MarketIndicesGrid'
-import { RecentDataTable } from '../data/RecentDataTable'
-import { UpcomingEventsPanel } from '../events/UpcomingEventsPanel'
-import { InsideDayScanner } from '../scanner/InsideDayScanner'
+import { ScannerTab } from '../scanner/ScannerTab'
 import { ResearchTab } from '../research/ResearchTab'
 import { GlobalEconomicsTab } from '../global-economics/GlobalEconomicsTab'
+import { USEconomicsTab } from '../us-economics/USEconomicsTab'
 import type { TabId } from './NavTabs'
 
 interface DashboardLayoutProps {
@@ -12,24 +10,14 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
   return (
-    <main className="p-6 animate-fade-in">
+    <main className="p-3 md:p-6 animate-fade-in">
       {activeTab === 'scanner' && (
-        <InsideDayScanner />
+        <ScannerTab />
       )}
       {activeTab === 'research' && (
         <ResearchTab />
       )}
-      {activeTab === 'us-economics' && (
-        <>
-          <div className="mb-6">
-            <MarketIndicesGrid />
-          </div>
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
-            <RecentDataTable />
-            <UpcomingEventsPanel />
-          </div>
-        </>
-      )}
+      {activeTab === 'us-economics' && <USEconomicsTab />}
       {activeTab === 'global-economics' && (
         <GlobalEconomicsTab />
       )}

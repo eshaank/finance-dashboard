@@ -5,6 +5,30 @@ import { useAuth } from '../../contexts/AuthContext'
 import { HeaderNavTabs } from './NavTabs'
 import type { TabId, ViewId } from './NavTabs'
 
+const TZ_MAP = {
+  UTC: 'UTC',
+  PST: 'America/Los_Angeles',
+  EST: 'America/New_York',
+} as const
+
+const TZ_OPTIONS = ['UTC', 'PST', 'EST'] as const
+type TzId = (typeof TZ_OPTIONS)[number]
+
+const HEADER_TZ_KEY = 'header-tz'
+const HEADER_HOUR12_KEY = 'header-hour12'
+
+function getStoredTz(): TzId {
+  if (typeof window === 'undefined') return 'UTC'
+  const stored = localStorage.getItem(HEADER_TZ_KEY)
+  return TZ_OPTIONS.includes(stored as TzId) ? (stored as TzId) : 'UTC'
+}
+
+function getStoredHour12(): boolean {
+  if (typeof window === 'undefined') return false
+  const stored = localStorage.getItem(HEADER_HOUR12_KEY)
+  return stored === 'true'
+}
+
 interface HeaderProps {
   activeView: ViewId
   onTabChange: (tab: TabId) => void
@@ -15,30 +39,40 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
   const now = useClock()
   const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [tzMenuOpen, setTzMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const tzRef = useRef<HTMLDivElement>(null)
+  const [tz, setTz] = useState<TzId>(() => getStoredTz())
+  const [use12h, setUse12h] = useState<boolean>(() => getStoredHour12())
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setIsMenuOpen(false)
+      }
+      if (tzRef.current && !tzRef.current.contains(target)) {
+        setTzMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const tzId = TZ_MAP[tz]
   const timeStr = now.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
+    hour12: use12h,
+    timeZone: tzId,
   })
-
   const dateStr = now.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: tzId,
   })
 
   const displayName = user?.user_metadata?.full_name
@@ -47,7 +81,7 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
 
   return (
     <header className="border-b border-white/5 bg-dash-surface/50 backdrop-blur-xl sticky top-0 z-50">
-      <div className="px-6 py-4">
+      <div className="px-3 py-3 md:px-6 md:py-4">
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
@@ -65,7 +99,7 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
             <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center accent-glow">
               <Globe className="w-4 h-4 text-white" />
             </div>
-            <div className="text-left">
+            <div className="text-left hidden sm:block">
               <h1 className="font-display text-lg font-semibold tracking-tight text-dash-text">
                 Global Economic Dashboard
               </h1>
@@ -78,19 +112,76 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
             onTabChange={onTabChange}
           />
 
-          <div className="flex shrink-0 items-center gap-5">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60">
+          <div className="flex shrink-0 items-center gap-3 md:gap-5">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60 relative" ref={tzRef}>
               <Clock className="w-3.5 h-3.5 text-accent" />
               <span className="font-mono text-sm text-dash-text/80">{timeStr}</span>
-              <span className="text-xs text-white/30">UTC</span>
+              <button
+                type="button"
+                onClick={() => setTzMenuOpen((o) => !o)}
+                className="text-xs text-white/30 hover:text-white/60 cursor-pointer focus:outline-none focus:ring-0"
+                aria-label="Change timezone"
+                aria-expanded={tzMenuOpen}
+                aria-haspopup="listbox"
+              >
+                {tz}
+              </button>
+              {tzMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 py-1 bg-dash-surface border border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]"
+                  role="listbox"
+                  aria-label="Timezone and format"
+                >
+                  {TZ_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="option"
+                      aria-selected={option === tz}
+                      onClick={() => {
+                        setTz(option)
+                        localStorage.setItem(HEADER_TZ_KEY, option)
+                        setTzMenuOpen(false)
+                      }}
+                      className={`block w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-white/5 transition-colors ${option === tz ? 'text-accent' : 'text-white/70'}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                  <div className="border-t border-white/10 my-1" aria-hidden />
+                  <div className="px-3 py-1.5 text-xs text-white/40">Format</div>
+                  <div className="flex gap-1 px-2 pb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUse12h(false)
+                        localStorage.setItem(HEADER_HOUR12_KEY, 'false')
+                      }}
+                      className={`flex-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${!use12h ? 'bg-accent/20 text-accent' : 'text-white/70 hover:bg-white/5'}`}
+                    >
+                      24h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUse12h(true)
+                        localStorage.setItem(HEADER_HOUR12_KEY, 'true')
+                      }}
+                      className={`flex-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${use12h ? 'bg-accent/20 text-accent' : 'text-white/70 hover:bg-white/5'}`}
+                    >
+                      12h
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 text-white/30">
+            <div className="hidden md:flex items-center gap-2 text-white/30">
               <RefreshCw className="w-3 h-3" />
               <span className="text-xs">{dateStr}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-dash-green pulse-dot" />
               <span className="text-xs text-white/50">Live</span>
             </div>

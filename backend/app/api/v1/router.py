@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
+from app.domains.economics.router import router as economics_router
+from app.domains.fundamentals.router import router as fundamentals_router
 from app.domains.market.router import router as market_router
 from app.domains.research.router import router as research_router
-from app.domains.fundamentals.router import router as fundamentals_router
 from app.domains.scanner.router import router as scanner_router
-from app.domains.economics.router import router as economics_router
 
 api_router = APIRouter()
 

@@ -15,6 +15,7 @@
 | Variable | Required | Service | Description |
 |----------|----------|---------|-------------|
 | `MASSIVE_API_KEY` | Yes | Backend | API key for Polygon.io + Massive APIs |
+| `FRED_API_KEY` | Yes | Backend | API key for FRED (Federal Reserve Economic Data) |
 | `VITE_API_BASE_URL` | Yes | Frontend | Backend URL (e.g. `http://localhost:8000`) |
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL (e.g. `https://xxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon/publishable key |
@@ -24,12 +25,15 @@
 ## Running Locally
 
 ```bash
-# Backend (from backend/)
-source .venv/bin/activate
-uvicorn app.main:app --reload
+just setup   # install backend + frontend dependencies
+just dev     # run both dev servers concurrently
+```
 
-# Frontend (from frontend/)
-npm run dev
+Or run individually:
+
+```bash
+just dev-backend    # backend only (port 8000)
+just dev-frontend   # frontend only (port 5173)
 ```
 
 ## Services & Dependencies
@@ -37,7 +41,8 @@ npm run dev
 | Service | Purpose | Auth |
 |---------|---------|------|
 | Polygon.io | Price data (OHLC bars) + company reference data | `MASSIVE_API_KEY` as query param |
-| Massive API | Fundamentals, short interest, short volume, float | `MASSIVE_API_KEY` as query param |
+| Massive API | Fundamentals, short interest, short volume, float, Fed economic data | `MASSIVE_API_KEY` as query param |
+| FRED | Economic series (GDP, payrolls, etc.) + release calendar | `FRED_API_KEY` as query param |
 | Supabase Auth | User authentication (invite-only) | `VITE_SUPABASE_ANON_KEY`; backend uses JWKS (ES256) |
 | Supabase Postgres | User profiles table with RLS | Via Supabase Auth session |
 
@@ -48,7 +53,7 @@ npm run dev
 | Frontend | React + TypeScript + Vite | React 19, Vite 7 |
 | Data Fetching | SWR | v2 |
 | Styling | Tailwind CSS | v3 |
-| Backend | FastAPI + Python | Python 3.12+ |
+| Backend | FastAPI + Python | Python 3.13 |
 | HTTP Client | httpx (async) + tenacity (retry) | |
 | Caching | cachetools (TTLCache) | |
 | Rate Limiting | slowapi | |
@@ -72,6 +77,7 @@ npm run dev
    | Variable | Where | Notes |
    |----------|--------|--------|
    | `MASSIVE_API_KEY` | Backend (serverless) | Same as local |
+   | `FRED_API_KEY` | Backend (serverless) | Same as local |
    | `SUPABASE_URL` | Backend | e.g. `https://xxx.supabase.co` |
    | `VITE_API_BASE_URL` | Frontend (build) | Leave **empty** so API calls use same origin (`/api/...`) |
    | `VITE_SUPABASE_URL` | Frontend (build) | Same as `SUPABASE_URL` |

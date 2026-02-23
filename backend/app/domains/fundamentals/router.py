@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/fundamentals")
 
 
-async def _handle(request: Request, ticker: str, fetcher, model, is_list: bool = True, page: int = 1, per_page: int = 50):  # type: ignore[no-untyped-def]
+async def _handle(  # type: ignore[no-untyped-def]
+    request: Request, ticker: str, fetcher, model, is_list: bool = True, page: int = 1, per_page: int = 50,
+):
     try:
         result = await fetch_and_parse(fetcher, model, request.app.state.http_client, ticker, is_list)
         if is_list and isinstance(result, list):
@@ -64,7 +66,9 @@ async def get_income_statement(
     per_page: int = Query(50, ge=1, le=100),
     _user: dict = Depends(get_current_user),
 ) -> list[IncomeStatementEntry]:
-    return await _handle(request, ticker, client.get_income_statement, IncomeStatementEntry, page=page, per_page=per_page)
+    return await _handle(
+        request, ticker, client.get_income_statement, IncomeStatementEntry, page=page, per_page=per_page,
+    )
 
 
 @router.get("/ratios", response_model=list[RatiosEntry])

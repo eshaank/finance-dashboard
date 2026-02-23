@@ -6,12 +6,12 @@ export function UpcomingEventsPanel() {
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
-      <div className="border-b border-white/5 px-5 py-4">
+      <div className="border-b border-white/5 px-3 py-3 sm:px-5 sm:py-4">
         <h2 className="font-display text-base font-semibold text-dash-text">Upcoming Events</h2>
         <p className="text-xs text-white/40 mt-0.5">Economic calendar</p>
       </div>
 
-      <div className="px-5">
+      <div className="px-3 sm:px-5">
         {loading
           ? [...Array(6)].map((_, i) => (
               <div key={i} className="py-3 border-t border-white/5 first:border-t-0">

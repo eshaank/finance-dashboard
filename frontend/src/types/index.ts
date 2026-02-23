@@ -19,6 +19,7 @@ export interface EconomicDataPoint {
   status: 'beat' | 'missed' | 'inline' | 'pending'
   date: string
   unit: string
+  category: string
 }
 
 export interface UpcomingEvent {
@@ -28,6 +29,10 @@ export interface UpcomingEvent {
   priority: 'HIGH' | 'MEDIUM' | 'LOW'
   category: string
   daysUntil: number
+  actual: number | null
+  forecast: number | null
+  previous: number | null
+  unit: string
 }
 
 export interface OHLCBar {
@@ -150,6 +155,25 @@ export interface CompanyDetails {
   total_employees: number | null
   market_cap: number | null
   logo_url: string | null
+}
+
+export interface BulkInsideDayItem {
+  ticker: string
+  name: string | null
+  consecutive_inside_days: number
+  compression_pct: number | null
+  mother_bar_date: string | null
+  latest_close: number
+  market_cap: number | null
+  inside_day_dates: string[]
+}
+
+export interface BulkInsideDayResult {
+  results: BulkInsideDayItem[]
+  total_scanned: number
+  total_with_inside_days: number
+  scan_date: string
+  preset: string
 }
 
 // ── API Envelope ────────────────────────────────────────────────────────────

@@ -28,6 +28,13 @@ Thumbs.db
 # Claude local
 CLAUDE.local.md
 
+# Coverage
+coverage/
+.coverage
+
+# Logs
+*.log
+
 # Python
 .venv/
 .vercel

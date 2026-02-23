@@ -73,7 +73,7 @@ export function ResearchTab() {
       />
 
       {!activeTicker ? (
-        <div className="glass-card rounded-xl p-12 flex flex-col items-center justify-center gap-3">
+        <div className="glass-card rounded-xl p-8 md:p-12 flex flex-col items-center justify-center gap-3">
           <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-accent-light text-lg animate-pulse-slow">
             $
           </div>
@@ -82,7 +82,7 @@ export function ResearchTab() {
       ) : null}
 
       {activeTicker ? (
-        <div className="glass-card rounded-xl px-4 py-2 flex gap-0.5">
+        <div className="glass-card rounded-xl px-3 py-2 sm:px-4 overflow-x-auto scrollbar-hide">
           <div className="flex rounded-lg bg-white/[0.04] p-0.5">
             {SECTIONS.map((s) => (
               <button

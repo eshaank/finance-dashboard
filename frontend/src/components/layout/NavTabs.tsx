@@ -34,7 +34,7 @@ interface HeaderNavTabsProps {
 /** Tab buttons for use inside the header (single bar). */
 export function HeaderNavTabs({ activeTab, onTabChange }: HeaderNavTabsProps) {
   return (
-    <div className="relative z-0 flex min-w-0 flex-1 items-center justify-center">
+    <div className="relative z-0 flex min-w-0 flex-1 items-center justify-center overflow-x-auto scrollbar-hide">
       {TABS.map((tab) => {
         const isSoon = tab.soon === true
         const isActive = !isSoon && activeTab !== null && tab.id === activeTab
@@ -45,7 +45,7 @@ export function HeaderNavTabs({ activeTab, onTabChange }: HeaderNavTabsProps) {
             onClick={() => !isSoon && onTabChange(tab.id as TabId)}
             disabled={isSoon}
             className={[
-              'relative shrink-0 px-3 py-2 text-sm font-medium transition-colors duration-150',
+              'relative whitespace-nowrap px-2.5 py-2 text-xs sm:px-3 sm:text-sm font-medium transition-colors duration-150',
               isSoon
                 ? 'opacity-40 cursor-not-allowed text-white/40'
                 : isActive
@@ -55,7 +55,7 @@ export function HeaderNavTabs({ activeTab, onTabChange }: HeaderNavTabsProps) {
           >
             {tab.label}
             {isSoon && (
-              <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/30">
+              <span className="ml-1 sm:ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/30">
                 soon
               </span>
             )}

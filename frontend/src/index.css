@@ -86,3 +86,12 @@
 .pulse-dot {
   animation: pulseDot 2s ease-in-out infinite;
 }
+
+/* Hide scrollbar for nav tabs on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

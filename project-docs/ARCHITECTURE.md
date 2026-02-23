@@ -24,7 +24,8 @@ graph TB
 
     subgraph External["External Services"]
         Polygon["Polygon.io<br/>Price data + Company info"]
-        Massive["Massive API<br/>Fundamentals + Shorts"]
+        Massive["Massive API<br/>Fundamentals + Shorts + Fed"]
+        FRED["FRED API<br/>Economic series + releases"]
         Supabase["Supabase Cloud<br/>Auth + Postgres (profiles)"]
     end
 
@@ -34,6 +35,7 @@ graph TB
     Domains --> HTTP
     HTTP --> Polygon
     HTTP --> Massive
+    HTTP --> FRED
     Browser -->|"Login / OAuth"| Supabase
     Auth -.->|"JWKS verify"| Supabase
 ```
@@ -69,6 +71,7 @@ graph LR
         FUN["fundamentals<br/>financials, ratios, shorts"]
         SCN["scanner<br/>inside days"]
         ECO["economics<br/>indicators, events"]
+        FRD["fred<br/>(internal: series + releases)"]
         FIL["filings (placeholder)"]
         NEW["news (placeholder)"]
         SCR["screener (placeholder)"]
@@ -84,6 +87,9 @@ graph LR
     RES --> HC
     FUN --> HC
     SCN --> MKT
+    ECO --> FRD
+    ECO --> HC
+    FRD --> HC
 
     style FIL fill:#333,stroke:#555,color:#888
     style NEW fill:#333,stroke:#555,color:#888
@@ -109,7 +115,8 @@ backend/app/
 │   ├── research/            # router, schemas, service, client
 │   ├── fundamentals/        # router, schemas, service, client
 │   ├── scanner/             # router, schemas, service
-│   ├── economics/           # router, schemas, service
+│   ├── economics/           # router, schemas, service, client
+│   ├── fred/                # client, service (internal — consumed by economics)
 │   ├── filings/             # placeholder
 │   ├── news/                # placeholder
 │   └── screener/            # placeholder
@@ -313,8 +320,8 @@ All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 | GET | `/fundamentals/short-volume?ticker=&page=&per_page=` | fundamentals | Massive | Short volume data |
 | GET | `/fundamentals/float?ticker=` | fundamentals | Massive | Free float data |
 | GET | `/inside-days?ticker=` | scanner | Polygon (daily bars) | Inside-day pattern detection |
-| GET | `/economic-data` | economics | Mock data | Economic indicators |
-| GET | `/upcoming-events` | economics | Mock data | Upcoming events |
+| GET | `/economic-data` | economics | FRED + Massive (Fed) | Economic indicators |
+| GET | `/upcoming-events` | economics | FRED (releases) | Upcoming events |
 | GET | `/health` | main | - | Health check |
 
 ---
@@ -327,7 +334,14 @@ All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 - **Retry:** 3 attempts, exponential backoff (tenacity)
 - **Cache:** TTLCache (1min candles, 5min company details)
 
-### Massive API — Fundamentals + Short Data
+### FRED — Federal Reserve Economic Data
+- **Base URL:** `https://api.stlouisfed.org/fred`
+- **Auth:** Query param `api_key` (from `FRED_API_KEY` env var)
+- **Retry:** 3 attempts, exponential backoff (tenacity)
+- **Cache:** TTLCache (10min for series observations and release dates)
+- **Used by:** `fred/client.py` → `fred/service.py` → `economics/service.py`
+
+### Massive API — Fundamentals + Short Data + Fed
 - **Base URL:** `https://api.massive.com`
 - **Auth:** Query param `apiKey` (from `MASSIVE_API_KEY` env var)
 - **Retry:** 3 attempts, exponential backoff (tenacity)
