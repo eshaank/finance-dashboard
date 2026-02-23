@@ -45,6 +45,37 @@ def compute_compression(bars: list[DailyBar], consecutive: int) -> tuple[str | N
     return mother.date, compression_pct
 
 
+def compute_atr(bars: list[DailyBar], period: int = 14) -> float | None:
+    """Compute Average True Range as a percentage of the latest close.
+
+    Requires at least period + 1 bars (to get `period` true-range values).
+    Returns ATR as pct of latest close, or None if insufficient data.
+    """
+    if len(bars) < period + 1:
+        return None
+
+    true_ranges: list[float] = []
+    for i in range(len(bars) - period, len(bars)):
+        h = bars[i].high
+        l = bars[i].low
+        prev_c = bars[i - 1].close
+        tr = max(h - l, abs(h - prev_c), abs(l - prev_c))
+        true_ranges.append(tr)
+
+    atr = sum(true_ranges) / len(true_ranges)
+    latest_close = bars[-1].close
+    if latest_close <= 0:
+        return None
+    return round((atr / latest_close) * 100, 2)
+
+
+def compute_avg_volume(bars: list[DailyBar]) -> float:
+    """Compute average daily volume across all provided bars."""
+    if not bars:
+        return 0
+    return sum(b.volume for b in bars) / len(bars)
+
+
 def scan_ticker_for_inside_days(bars: list[DailyBar]) -> dict | None:
     """Run inside day analysis on a list of bars.
 
@@ -60,4 +91,8 @@ def scan_ticker_for_inside_days(bars: list[DailyBar]) -> dict | None:
         "mother_bar_date": mother_bar_date,
         "compression_pct": compression_pct,
         "latest_close": bars[-1].close,
+        "avg_volume": round(compute_avg_volume(bars[:-1])) if len(bars) > 1 else 0,
+        "today_volume": round(bars[-1].volume),
+        "relative_volume": round(bars[-1].volume / compute_avg_volume(bars[:-1]), 2) if len(bars) > 1 and compute_avg_volume(bars[:-1]) > 0 else None,
+        "atr_pct": compute_atr(bars),
     }

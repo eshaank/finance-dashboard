@@ -51,13 +51,16 @@ async def scan_inside_days(
     preset: str = Query("all", pattern="^(all|spy500|nasdaq100)$"),
     min_cap: float | None = Query(None),
     max_cap: float | None = Query(None),
+    min_price: float | None = Query(None),
+    min_avg_volume: float | None = Query(None),
+    min_relative_volume: float | None = Query(None),
+    min_atr_pct: float | None = Query(None),
+    exclude_etfs: bool = Query(True),
     _user: dict = Depends(get_current_user),
 ) -> BulkInsideDayResult:
     """Scan the market for stocks with consecutive inside days."""
     http = request.app.state.http_client
-
     ticker_bars = await fetch_grouped_multi_day(http)
-
     # Filter to preset constituents if applicable
     constituents = get_constituents(preset)
     if constituents is not None:
@@ -65,8 +68,14 @@ async def scan_inside_days(
             t: bars for t, bars in ticker_bars.items() if t in constituents
         }
 
-    total_scanned = len(ticker_bars)
+    # Pre-filter by price (cheap check before expensive scan)
+    if min_price is not None:
+        ticker_bars = {
+            t: bars for t, bars in ticker_bars.items()
+            if bars and bars[-1].close >= min_price
+        }
 
+    total_scanned = len(ticker_bars)
     # Scan each ticker for inside days
     hits: dict[str, dict] = {}
     for ticker, bars in ticker_bars.items():
@@ -75,25 +84,40 @@ async def scan_inside_days(
         result = scan_ticker_for_inside_days(bars)
         if result is not None:
             hits[ticker] = result
+    # Post-scan filters (volume, ATR) — applied before expensive ticker_details fetch
+    if min_avg_volume is not None:
+        hits = {
+            t: s for t, s in hits.items()
+            if s.get("avg_volume") is not None and s["avg_volume"] >= min_avg_volume
+        }
+    if min_relative_volume is not None:
+        hits = {
+            t: s for t, s in hits.items()
+            if s.get("relative_volume") is not None and s["relative_volume"] >= min_relative_volume
+        }
+    if min_atr_pct is not None:
+        hits = {
+            t: s for t, s in hits.items()
+            if s.get("atr_pct") is not None and s["atr_pct"] >= min_atr_pct
+        }
 
     total_with_inside_days = len(hits)
-
     # Fetch details only for tickers with inside days
     details: dict[str, dict] = {}
     if hits:
         details = await fetch_ticker_details_batch(http, list(hits.keys()))
-
-    # Build result items with optional market cap filtering
+    # Build result items with market cap + ETF filtering
     items: list[BulkInsideDayItem] = []
     for ticker, scan in hits.items():
         detail = details.get(ticker, {})
         cap = detail.get("market_cap")
-
+        ticker_type = detail.get("type")
         if min_cap is not None and (cap is None or cap < min_cap):
             continue
         if max_cap is not None and (cap is None or cap > max_cap):
             continue
-
+        if exclude_etfs and ticker_type and ticker_type.upper() in ("ETF", "ETN"):
+            continue
         items.append(BulkInsideDayItem(
             ticker=ticker,
             name=detail.get("name"),
@@ -103,8 +127,12 @@ async def scan_inside_days(
             latest_close=scan["latest_close"],
             market_cap=cap,
             inside_day_dates=scan["inside_day_dates"],
+            avg_volume=scan.get("avg_volume"),
+            today_volume=scan.get("today_volume"),
+            relative_volume=scan.get("relative_volume"),
+            atr_pct=scan.get("atr_pct"),
+            ticker_type=ticker_type,
         ))
-
     # Sort: most consecutive inside days first, then tightest compression
     items.sort(
         key=lambda x: (
@@ -112,7 +140,6 @@ async def scan_inside_days(
             x.compression_pct if x.compression_pct is not None else float("inf"),
         ),
     )
-
     return BulkInsideDayResult(
         results=items,
         total_scanned=total_scanned,

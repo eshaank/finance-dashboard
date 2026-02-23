@@ -17,6 +17,7 @@ class DailyBar:
     high: float
     low: float
     close: float
+    volume: float = 0
 
 
 CHART_TIMEFRAMES: dict[str, dict] = {
@@ -38,6 +39,7 @@ def _parse_bars(results: list[dict]) -> list[DailyBar]:
             high=float(r["h"]),
             low=float(r["l"]),
             close=float(r["c"]),
+            volume=float(r.get("v", 0)),
         )
         for r in results
     ]

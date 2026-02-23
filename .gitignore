@@ -1,3 +1,8 @@
+# Agents
+.claude/
+.agents/
+.sisyphus/
+
 # Env files
 .env
 .env.*

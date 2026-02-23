@@ -166,6 +166,11 @@ export interface BulkInsideDayItem {
   latest_close: number
   market_cap: number | null
   inside_day_dates: string[]
+  avg_volume: number | null
+  today_volume: number | null
+  relative_volume: number | null
+  atr_pct: number | null
+  ticker_type: string | null
 }
 
 export interface BulkInsideDayResult {
