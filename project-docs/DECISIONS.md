@@ -185,3 +185,26 @@ Define `ApiResponse[T]` envelope: `{ data: T, meta: { timestamp, request_id } }`
 - Every response includes a request ID for debugging.
 - Pagination metadata available for large datasets.
 - Frontend unwrapping is transparent — hooks see raw data types.
+
+---
+
+## ADR-010: Widget Dashboard Architecture
+
+**Date:** 2026-02-23
+**Status:** Accepted
+
+### Context
+DashboardHome was a placeholder. Users need a customizable landing page with draggable, resizable widgets.
+
+### Decision
+Registry-based plugin system with react-grid-layout:
+- Widget registry is the single source of truth for available types
+- Storage abstraction isolates persistence (localStorage now, Supabase later)
+- Each widget type is self-contained in `widgets/definitions/`
+- Adding a widget = one file + one import in the barrel
+
+### Consequences
+- Maximum extensibility with zero core changes for new widget types
+- Supabase migration requires changing only `storage.ts`
+- react-grid-layout adds ~25KB gzipped
+- Widget configs are fully JSON-serializable for persistence

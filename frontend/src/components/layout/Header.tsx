@@ -101,7 +101,7 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
             </div>
             <div className="text-left hidden sm:block">
               <h1 className="font-display text-lg font-semibold tracking-tight text-dash-text">
-                Global Economic Dashboard
+                3Epsilon Overwatch
               </h1>
               <p className="text-xs text-white/40">Market Intelligence Platform</p>
             </div>
@@ -113,6 +113,9 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
           />
 
           <div className="flex shrink-0 items-center gap-3 md:gap-5">
+            {activeView === 'home' && (
+              <div id="dashboard-controls" className="flex items-center gap-1.5" />
+            )}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60 relative" ref={tzRef}>
               <Clock className="w-3.5 h-3.5 text-accent" />
               <span className="font-mono text-sm text-dash-text/80">{timeStr}</span>
