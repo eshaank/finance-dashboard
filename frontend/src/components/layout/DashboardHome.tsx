@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Pencil, Check, RotateCcw, LayoutGrid } from 'lucide-react'
-import { useWidgetDashboard, WidgetGrid, WidgetPalette } from '../../widgets'
+import { useWidgetDashboard, TerminalWorkspace, WidgetPalette } from '../../widgets'
 
 function DashboardControls({
   isEditing,
@@ -19,7 +19,7 @@ function DashboardControls({
       {isEditing && (
         <button
           onClick={onReset}
-          className="w-7 h-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/60 transition-colors"
+          className="w-7 h-7 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/60 transition-colors"
           title="Reset layout"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -27,14 +27,14 @@ function DashboardControls({
       )}
       <button
         onClick={onAdd}
-        className="w-7 h-7 flex items-center justify-center rounded-md bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
+        className="w-7 h-7 flex items-center justify-center bg-accent/10 hover:bg-accent/20 text-accent transition-colors"
         title="Add Widget"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
       <button
         onClick={() => setIsEditing(!isEditing)}
-        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+        className={`w-7 h-7 flex items-center justify-center transition-colors ${
           isEditing
             ? 'bg-accent text-white hover:bg-accent/90'
             : 'bg-white/5 text-white/60 hover:bg-white/10'
@@ -50,13 +50,12 @@ function DashboardControls({
 export function DashboardHome() {
   const {
     widgets,
-    gridLayouts,
     isEditing,
     setIsEditing,
     addWidget,
     removeWidget,
     updateWidgetConfig,
-    handleLayoutChange,
+    updateWidgetPosition,
     resetToDefault,
   } = useWidgetDashboard()
 
@@ -71,7 +70,7 @@ export function DashboardHome() {
   const isEmpty = widgets.length === 0
 
   return (
-    <main className="p-3 animate-fade-in min-h-[calc(100vh-60px)]">
+    <main className="p-1 terminal-workspace">
       {/* Portal controls into Header */}
       {portalTarget &&
         createPortal(
@@ -84,9 +83,9 @@ export function DashboardHome() {
           portalTarget,
         )}
 
-      {/* Widget Grid or Empty State */}
+      {/* Terminal Workspace or Empty State */}
       {isEmpty ? (
-        <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-dash-surface/60 p-10 text-center mt-12">
+        <div className="mx-auto max-w-md border border-dash-border bg-dash-surface/60 p-10 text-center mt-12">
           <LayoutGrid className="w-10 h-10 text-white/20 mx-auto mb-4" />
           <h3 className="font-display text-base font-semibold text-dash-text mb-2">
             No widgets yet
@@ -96,18 +95,17 @@ export function DashboardHome() {
           </p>
           <button
             onClick={() => setPaletteOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent/10 text-accent hover:bg-accent/20 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Your First Widget
+            Add Widget
           </button>
         </div>
       ) : (
-        <WidgetGrid
+        <TerminalWorkspace
           widgets={widgets}
-          layouts={gridLayouts}
           isEditing={isEditing}
-          onLayoutChange={handleLayoutChange}
+          onPositionChange={updateWidgetPosition}
           onRemove={removeWidget}
           onConfigChange={updateWidgetConfig}
         />

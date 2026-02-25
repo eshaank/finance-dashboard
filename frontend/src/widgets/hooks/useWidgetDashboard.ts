@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { LayoutItem } from 'react-grid-layout'
-import type { WidgetTypeId, WidgetInstance, DashboardState } from '../types'
+import type { WidgetTypeId, DashboardState } from '../types'
 import { getWidgetDefinition } from '../registry'
 import { createLocalStorage } from '../storage'
 
@@ -19,41 +18,25 @@ export function useWidgetDashboard() {
     storage.save(state)
   }, [state])
 
-  const gridLayouts: LayoutItem[] = state.widgets.map((w) => {
-    const def = getWidgetDefinition(w.type)
-    return {
-      i: w.id,
-      x: w.layout.x,
-      y: w.layout.y,
-      w: w.layout.w,
-      h: w.layout.h,
-      minW: def?.defaultLayout.minW,
-      minH: def?.defaultLayout.minH,
-      maxW: def?.defaultLayout.maxW,
-      maxH: def?.defaultLayout.maxH,
-    }
-  })
-
   const addWidget = useCallback((type: WidgetTypeId) => {
     const def = getWidgetDefinition(type)
     if (!def) return
 
-    const instance: WidgetInstance = {
-      id: `${type}-${crypto.randomUUID().slice(0, 8)}`,
-      type,
-      config: { ...def.defaultConfig },
-      layout: {
-        x: 0,
-        y: Infinity,
-        w: def.defaultLayout.w,
-        h: def.defaultLayout.h,
-      },
-    }
-
-    setState((prev) => ({
-      ...prev,
-      widgets: [...prev.widgets, instance],
-    }))
+    setState((prev) => {
+      const offset = prev.widgets.length * 20
+      const instance = {
+        id: `${type}-${crypto.randomUUID().slice(0, 8)}`,
+        type,
+        config: { ...def.defaultConfig },
+        layout: {
+          x: 20 + offset,
+          y: 20 + offset,
+          w: def.defaultLayout.w,
+          h: def.defaultLayout.h,
+        },
+      }
+      return { ...prev, widgets: [...prev.widgets, instance] }
+    })
   }, [])
 
   const removeWidget = useCallback((id: string) => {
@@ -72,19 +55,13 @@ export function useWidgetDashboard() {
     }))
   }, [])
 
-  const handleLayoutChange = useCallback((layouts: LayoutItem[]) => {
-    setState((prev) => {
-      const layoutMap = new Map(layouts.map((l) => [l.i, l]))
-      const updated = prev.widgets.map((w) => {
-        const l = layoutMap.get(w.id)
-        if (!l) return w
-        return {
-          ...w,
-          layout: { x: l.x, y: l.y, w: l.w, h: l.h },
-        }
-      })
-      return { ...prev, widgets: updated }
-    })
+  const updateWidgetPosition = useCallback((id: string, x: number, y: number) => {
+    setState((prev) => ({
+      ...prev,
+      widgets: prev.widgets.map((w) =>
+        w.id === id ? { ...w, layout: { ...w.layout, x, y } } : w,
+      ),
+    }))
   }, [])
 
   const resetToDefault = useCallback(() => {
@@ -94,13 +71,12 @@ export function useWidgetDashboard() {
 
   return {
     widgets: state.widgets,
-    gridLayouts,
     isEditing,
     setIsEditing,
     addWidget,
     removeWidget,
     updateWidgetConfig,
-    handleLayoutChange,
+    updateWidgetPosition,
     resetToDefault,
   }
 }

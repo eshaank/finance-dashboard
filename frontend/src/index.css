@@ -35,11 +35,9 @@
 
 /* Glassmorphism card */
 .glass-card {
-  background: linear-gradient(135deg, rgba(17, 17, 20, 0.9) 0%, rgba(24, 24, 28, 0.8) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  background: rgba(17, 17, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
 }
 
 .glass-card-hover:hover {
@@ -96,19 +94,32 @@
   display: none;
 }
 
-/* react-grid-layout overrides */
-.react-grid-item.react-grid-placeholder {
-  background: rgba(119, 17, 40, 0.15) !important;
-  border: 1px dashed rgba(119, 17, 40, 0.4) !important;
-  border-radius: 12px;
-  opacity: 1 !important;
+/* Terminal workspace — free-floating panel system */
+.terminal-workspace {
+  background: #0a0a0b;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  min-height: calc(100vh - 60px);
 }
 
-.react-grid-item > .react-resizable-handle::after {
-  border-color: rgba(255, 255, 255, 0.15) !important;
+.terminal-panel {
+  background: #111114;
+  border: 1px solid #1e1e24;
+  border-radius: 0;
+  box-shadow: none;
+  position: absolute;
 }
 
-.react-grid-item.react-draggable-dragging {
-  z-index: 100;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+.terminal-panel-header {
+  border-bottom: 1px solid #1e1e24;
+  cursor: grab;
+  user-select: none;
+}
+
+.terminal-panel-header:active {
+  cursor: grabbing;
+}
+
+.terminal-panel.is-focused {
+  border-color: rgba(119, 17, 40, 0.5);
 }

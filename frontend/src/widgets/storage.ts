@@ -1,7 +1,7 @@
 import type { DashboardState, WidgetInstance } from './types'
 
 const STORAGE_KEY = 'finance-dashboard-widgets'
-const CURRENT_VERSION = 2
+const CURRENT_VERSION = 3
 
 export interface WidgetStorage {
   load(): DashboardState
@@ -14,13 +14,13 @@ function defaultState(): DashboardState {
       id: 'default-market-indices',
       type: 'market-indices',
       config: {},
-      layout: { x: 0, y: 0, w: 12, h: 5 },
+      layout: { x: 0, y: 0, w: 1200, h: 220 },
     },
     {
-      id: 'default-upcoming-events',
-      type: 'upcoming-events',
-      config: {},
-      layout: { x: 0, y: 5, w: 6, h: 8 },
+      id: 'default-price-chart',
+      type: 'price-chart',
+      config: { ticker: 'SPY', timeframe: '6M' },
+      layout: { x: 0, y: 224, w: 600, h: 360 },
     },
   ]
   return { widgets: defaults, version: CURRENT_VERSION }

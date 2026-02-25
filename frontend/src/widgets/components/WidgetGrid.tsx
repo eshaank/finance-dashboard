@@ -1,69 +1,88 @@
-import { useMemo } from 'react'
-import { ResponsiveGridLayout, verticalCompactor, useContainerWidth } from 'react-grid-layout'
-import type { LayoutItem, Layout } from 'react-grid-layout'
-import 'react-grid-layout/css/styles.css'
-import 'react-resizable/css/styles.css'
-import { WidgetShell } from './WidgetShell'
+import { useState, useCallback, useRef } from 'react'
+import Draggable from 'react-draggable'
+import type { DraggableEvent, DraggableData } from 'react-draggable'
+import { TerminalPanel } from './TerminalPanel'
 import type { WidgetInstance } from '../types'
 
-interface WidgetGridProps {
+interface TerminalWorkspaceProps {
   widgets: WidgetInstance[]
-  layouts: LayoutItem[]
   isEditing: boolean
-  onLayoutChange: (layouts: LayoutItem[]) => void
+  onPositionChange: (id: string, x: number, y: number) => void
   onRemove: (id: string) => void
   onConfigChange: (id: string, config: Record<string, unknown>) => void
 }
 
-const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }
-const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }
-const DRAG_CONFIG = { enabled: true, handle: '.widget-drag-handle', bounded: false, threshold: 3 }
-
-export function WidgetGrid({
+export function TerminalWorkspace({
   widgets,
-  layouts,
   isEditing,
-  onLayoutChange,
+  onPositionChange,
   onRemove,
   onConfigChange,
-}: WidgetGridProps) {
-  const { containerRef, width, mounted } = useContainerWidth({ measureBeforeMount: true })
+}: TerminalWorkspaceProps) {
+  const [zCounter, setZCounter] = useState(10)
+  const [zMap, setZMap] = useState<Record<string, number>>({})
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({})
+  const [focusedId, setFocusedId] = useState<string | null>(null)
 
-  const allLayouts = useMemo(() => ({
-    lg: layouts,
-    md: layouts,
-    sm: layouts,
-    xs: layouts,
-    xxs: layouts,
-  }), [layouts])
+  const bringToFront = useCallback((id: string) => {
+    setZCounter((prev) => {
+      const next = prev + 1
+      setZMap((m) => ({ ...m, [id]: next }))
+      return next
+    })
+    setFocusedId(id)
+  }, [])
+
+  const handleDragStop = useCallback(
+    (_e: DraggableEvent, data: DraggableData, id: string) => {
+      onPositionChange(id, data.x, data.y)
+    },
+    [onPositionChange],
+  )
+
+  function getNodeRef(id: string) {
+    if (!nodeRefs.current[id]) {
+      nodeRefs.current[id] = { current: null } as React.RefObject<HTMLDivElement | null>
+    }
+    return nodeRefs.current[id]
+  }
 
   return (
-    <div ref={containerRef}>
-      {mounted && (
-        <ResponsiveGridLayout
-          width={width}
-          layouts={allLayouts}
-          breakpoints={BREAKPOINTS}
-          cols={COLS}
-          rowHeight={32}
-          margin={[8, 8]}
-          containerPadding={[0, 0]}
-          dragConfig={DRAG_CONFIG}
-          compactor={verticalCompactor}
-          onLayoutChange={(layout: Layout) => onLayoutChange([...layout])}
-        >
-          {widgets.map((widget) => (
-            <div key={widget.id}>
-              <WidgetShell
+    <div className="terminal-workspace relative w-full">
+      {widgets.map((widget) => {
+        const ref = getNodeRef(widget.id)
+        return (
+          <Draggable
+            key={widget.id}
+            nodeRef={ref}
+            handle=".drag-handle"
+            position={{ x: widget.layout.x, y: widget.layout.y }}
+            onStop={(e, data) => handleDragStop(e, data, widget.id)}
+            onStart={() => bringToFront(widget.id)}
+            bounds={false}
+          >
+            <div
+              ref={ref}
+              className="group"
+              style={{
+                position: 'absolute',
+                width: widget.layout.w,
+                height: widget.layout.h,
+                zIndex: zMap[widget.id] ?? widget.layout.zIndex ?? 1,
+              }}
+            >
+              <TerminalPanel
                 widget={widget}
                 isEditing={isEditing}
+                isFocused={focusedId === widget.id}
                 onRemove={onRemove}
                 onConfigChange={onConfigChange}
+                onFocus={bringToFront}
               />
             </div>
-          ))}
-        </ResponsiveGridLayout>
-      )}
+          </Draggable>
+        )
+      })}
     </div>
   )
 }

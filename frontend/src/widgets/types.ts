@@ -8,10 +8,11 @@ export type WidgetTypeId =
   | 'company-info'
 
 export interface WidgetLayout {
-  x: number
-  y: number
-  w: number
-  h: number
+  x: number       // px from left
+  y: number       // px from top
+  w: number       // width in px
+  h: number       // height in px
+  zIndex?: number  // stacking order
 }
 
 export interface WidgetInstance {
@@ -39,12 +40,8 @@ export interface WidgetDefinition {
   category: WidgetCategory
   defaultConfig: Record<string, unknown>
   defaultLayout: {
-    w: number
-    h: number
-    minW: number
-    minH: number
-    maxW?: number
-    maxH?: number
+    w: number  // default width px
+    h: number  // default height px
   }
   component: ComponentType<WidgetProps>
 }

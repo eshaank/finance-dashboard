@@ -44,7 +44,7 @@ export function WidgetPalette({ open, onClose, onAddWidget }: WidgetPaletteProps
           <h2 className="font-display text-sm font-semibold text-dash-text">Add Widget</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-white/40 hover:text-white/60 hover:bg-white/5 transition-colors"
+            className="p-1 text-white/40 hover:text-white/60 hover:bg-white/5 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -67,9 +67,9 @@ export function WidgetPalette({ open, onClose, onAddWidget }: WidgetPaletteProps
                       <button
                         key={def.type}
                         onClick={() => handleAdd(def.type)}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors group/item text-left"
+                        className="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors group/item text-left"
                       >
-                        <div className="shrink-0 w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <div className="shrink-0 w-9 h-9 bg-accent/10 flex items-center justify-center">
                           <Icon className="w-4 h-4 text-accent" />
                         </div>
                         <div className="flex-1 min-w-0">

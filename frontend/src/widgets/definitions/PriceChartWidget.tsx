@@ -32,11 +32,11 @@ function PriceChartWidget({ config, onConfigChange }: WidgetProps) {
           onChange={(e) => setInput(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleGo()}
           placeholder="Ticker"
-          className="w-24 px-2 py-1 text-xs bg-white/5 border border-white/10 rounded-md text-dash-text placeholder:text-white/30 focus:outline-none focus:border-white/20"
+          className="w-24 px-2 py-1 text-xs font-mono bg-white/5 border border-dash-border text-dash-text placeholder:text-white/30 focus:outline-none focus:border-accent"
         />
         <button
           onClick={handleGo}
-          className="px-2 py-1 text-xs font-medium bg-white/10 hover:bg-white/15 rounded-md text-dash-text transition-colors"
+          className="px-2 py-1 text-xs font-mono font-medium bg-white/10 hover:bg-white/15 text-dash-text transition-colors border border-dash-border"
         >
           Go
         </button>
@@ -62,6 +62,6 @@ registerWidget({
   icon: 'LineChart',
   category: 'market',
   defaultConfig: { ticker: 'SPY', timeframe: '6M' },
-  defaultLayout: { w: 6, h: 10, minW: 4, minH: 6 },
+  defaultLayout: { w: 600, h: 360 },
   component: PriceChartWidget,
 })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Globe, Mail, KeyRound, Loader2 } from 'lucide-react'
+import { Mail, KeyRound, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 type AuthMode = 'signin' | 'magiclink'
@@ -58,9 +58,7 @@ export function AuthPage() {
     <div className="min-h-screen bg-dash-bg grid-pattern flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center accent-glow">
-            <Globe className="w-6 h-6 text-white" />
-          </div>
+          <img src="/logo.svg" alt="3Epsilon" className="w-16 h-16 rounded-2xl" />
           <div className="text-center">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-dash-text">
               Global Economic Dashboard

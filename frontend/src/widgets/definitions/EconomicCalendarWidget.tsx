@@ -19,6 +19,6 @@ registerWidget({
   icon: 'Calendar',
   category: 'economics',
   defaultConfig: {},
-  defaultLayout: { w: 12, h: 10, minW: 6, minH: 6 },
+  defaultLayout: { w: 1200, h: 400 },
   component: EconomicCalendarWidget,
 })

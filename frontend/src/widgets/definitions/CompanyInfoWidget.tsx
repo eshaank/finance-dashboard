@@ -31,11 +31,11 @@ function CompanyInfoWidget({ config, onConfigChange }: WidgetProps) {
           onChange={(e) => setInput(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleGo()}
           placeholder="Ticker"
-          className="w-24 px-2 py-1 text-xs bg-white/5 border border-white/10 rounded-md text-dash-text placeholder:text-white/30 focus:outline-none focus:border-white/20"
+          className="w-24 px-2 py-1 text-xs font-mono bg-white/5 border border-dash-border text-dash-text placeholder:text-white/30 focus:outline-none focus:border-accent"
         />
         <button
           onClick={handleGo}
-          className="px-2 py-1 text-xs font-medium bg-white/10 hover:bg-white/15 rounded-md text-dash-text transition-colors"
+          className="px-2 py-1 text-xs font-mono font-medium bg-white/10 hover:bg-white/15 text-dash-text transition-colors border border-dash-border"
         >
           Go
         </button>
@@ -85,15 +85,15 @@ function CompanyInfoWidget({ config, onConfigChange }: WidgetProps) {
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             {data.market_cap !== null && (
-              <div className="bg-white/[0.03] rounded-lg px-2.5 py-2">
+              <div className="bg-white/[0.03] border border-dash-border px-2.5 py-2">
                 <p className="text-white/40">Market Cap</p>
-                <p className="text-dash-text font-medium">{fmtMarketCap(data.market_cap)}</p>
+                <p className="text-dash-text font-mono font-medium">{fmtMarketCap(data.market_cap)}</p>
               </div>
             )}
             {data.total_employees !== null && (
-              <div className="bg-white/[0.03] rounded-lg px-2.5 py-2">
+              <div className="bg-white/[0.03] border border-dash-border px-2.5 py-2">
                 <p className="text-white/40">Employees</p>
-                <p className="text-dash-text font-medium">{data.total_employees.toLocaleString()}</p>
+                <p className="text-dash-text font-mono font-medium">{data.total_employees.toLocaleString()}</p>
               </div>
             )}
           </div>
@@ -110,6 +110,6 @@ registerWidget({
   icon: 'Building2',
   category: 'research',
   defaultConfig: { ticker: '' },
-  defaultLayout: { w: 4, h: 8, minW: 3, minH: 5 },
+  defaultLayout: { w: 400, h: 320 },
   component: CompanyInfoWidget,
 })

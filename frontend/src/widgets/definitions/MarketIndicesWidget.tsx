@@ -14,6 +14,6 @@ registerWidget({
   icon: 'BarChart3',
   category: 'market',
   defaultConfig: {},
-  defaultLayout: { w: 12, h: 5, minW: 6, minH: 4 },
+  defaultLayout: { w: 1200, h: 220 },
   component: MarketIndicesWidget,
 })
