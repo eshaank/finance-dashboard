@@ -20,6 +20,7 @@ class OHLCBar(BaseModel):
     high: float
     low: float
     close: float
+    volume: float = 0
 
 
 class PriceChartResult(BaseModel):

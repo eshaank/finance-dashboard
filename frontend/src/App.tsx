@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { SWRConfig } from 'swr'
 import { Header } from './components/layout/Header'
 import { DashboardLayout } from './components/layout/DashboardLayout'
@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthPage } from './components/auth/AuthPage'
 import { Loader2 } from 'lucide-react'
 import { swrConfig } from './lib/swr'
-import type { ViewId } from './components/layout/NavTabs'
+import type { ViewId, TabId } from './components/layout/NavTabs'
 
 function App() {
   return (
@@ -22,6 +22,17 @@ function App() {
 function AppContent() {
   const { session, loading } = useAuth()
   const [activeView, setActiveView] = useState<ViewId>('home')
+  const lastNonHomeView = useRef<TabId>('markets')
+  const addWidgetHandler = useRef<(() => void) | null>(null)
+  const commandPaletteHandler = useRef<(() => void) | null>(null)
+
+  const registerAddWidget = useCallback((handler: () => void) => {
+    addWidgetHandler.current = handler
+  }, [])
+
+  const registerCommandPalette = useCallback((handler: () => void) => {
+    commandPaletteHandler.current = handler
+  }, [])
 
   if (loading) {
     return (
@@ -35,15 +46,33 @@ function AppContent() {
     return <AuthPage />
   }
 
+  const isTerminalMode = activeView === 'home'
+
+  function handleTabChange(tab: TabId) {
+    lastNonHomeView.current = tab
+    setActiveView(tab)
+  }
+
+  function handleExitTerminal() {
+    setActiveView(lastNonHomeView.current)
+  }
+
   return (
     <div className="min-h-screen bg-dash-bg grid-pattern">
       <Header
         activeView={activeView}
-        onTabChange={(tab) => setActiveView(tab)}
+        onTabChange={handleTabChange}
         onGoHome={() => setActiveView('home')}
+        isTerminalMode={isTerminalMode}
+        onExitTerminal={handleExitTerminal}
+        onAddWidgetClick={() => addWidgetHandler.current?.()}
+        onCommandPaletteOpen={() => commandPaletteHandler.current?.()}
       />
-      {activeView === 'home' ? (
-        <DashboardHome />
+      {isTerminalMode ? (
+        <DashboardHome
+          onAddWidgetClick={registerAddWidget}
+          onCommandPaletteOpen={registerCommandPalette}
+        />
       ) : (
         <DashboardLayout activeTab={activeView} />
       )}

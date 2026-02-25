@@ -38,25 +38,31 @@ interface Props {
   loading: boolean
   timeframe?: ChartTimeframe
   onTimeframeChange?: (tf: ChartTimeframe) => void
+  hideHeader?: boolean
+  hideTimeframes?: boolean
 }
 
 function fmtPrice(v: number): string {
   return `$${v.toFixed(2)}`
 }
 
-export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTimeframeChange }: Props) {
+export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTimeframeChange, hideHeader, hideTimeframes }: Props) {
   const { ref: containerRef, width: containerWidth } = useContainerWidth(DEFAULT_VIEW_W)
   const VIEW_W = Math.max(containerWidth, 300)
   const padX = VIEW_W < 500 ? PAD_X_SM : PAD_X
   const chartW = VIEW_W - padX * 2
   const chartH = VIEW_H - PAD_TOP - PAD_BOT
 
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+
   if (loading) {
     return (
       <div ref={containerRef}>
-        <div className="mb-3">
-          <span className="text-xs uppercase tracking-widest text-white/50">{ticker}</span>
-        </div>
+        {!hideHeader && (
+          <div className="mb-3">
+            <span className="text-xs uppercase tracking-widest text-white/50">{ticker}</span>
+          </div>
+        )}
         <div
           className="w-full rounded animate-pulse bg-white/[0.04]"
           style={{ height: VIEW_H }}
@@ -106,31 +112,52 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
   const change = displayClose - prevClose
   const changePct = prevClose !== 0 ? (change / prevClose) * 100 : 0
   const isPositive = change >= 0
-  const changeColor = isPositive ? 'text-emerald-400' : 'text-rose-400'
+  const changeColor = isPositive ? 'text-dash-green' : 'text-dash-red'
   const changeSign = isPositive ? '+' : ''
 
-  const lineColor = isPositive ? '#10b981' : '#f43f5e'
+  const lineColor = isPositive ? '#00cc66' : '#ff4444'
   const gradientId = `price-grad-${ticker}`
 
-  // Last data point coordinates for end dot
   const lastX = toX(bars.length - 1)
   const lastY = toY(lastClose)
 
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    const svg = e.currentTarget
+    const rect = svg.getBoundingClientRect()
+    const svgX = ((e.clientX - rect.left) / rect.width) * VIEW_W
+    const idx = Math.round(((svgX - padX) / chartW) * (bars.length - 1))
+    if (idx >= 0 && idx < bars.length) {
+      setHoverIndex(idx)
+    } else {
+      setHoverIndex(null)
+    }
+  }
+
+  function handleMouseLeave() {
+    setHoverIndex(null)
+  }
+
+  const hoverBar = hoverIndex !== null ? bars[hoverIndex] : null
+  const hoverX = hoverIndex !== null ? toX(hoverIndex) : 0
+  const hoverY = hoverBar ? toY(hoverBar.close) : 0
+
   return (
     <div ref={containerRef}>
-      <div className="mb-2">
-        <span className="text-xs uppercase tracking-widest text-white/50 block mb-0.5">{ticker}</span>
-        <div className="flex items-baseline gap-3">
-          <span className="text-2xl font-display font-semibold text-white">
-            {fmtPrice(displayClose)}
-          </span>
-          <span className={`text-sm font-mono ${changeColor}`}>
-            {changeSign}{change.toFixed(2)} ({changeSign}{changePct.toFixed(2)}%)
-          </span>
+      {!hideHeader && (
+        <div className="mb-2">
+          <span className="text-xs uppercase tracking-widest text-white/50 block mb-0.5">{ticker}</span>
+          <div className="flex items-baseline gap-3">
+            <span className="text-2xl font-display font-semibold text-white">
+              {fmtPrice(displayClose)}
+            </span>
+            <span className={`text-sm font-mono ${changeColor}`}>
+              {changeSign}{change.toFixed(2)} ({changeSign}{changePct.toFixed(2)}%)
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {onTimeframeChange && (
+      {!hideTimeframes && onTimeframeChange && (
         <div className="flex rounded-lg bg-white/[0.04] p-0.5 border border-white/[0.06] mb-3 w-fit">
           {TIMEFRAMES.map((tf) => (
             <button
@@ -153,6 +180,8 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         className="w-full"
         aria-label={`${ticker} price chart`}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -217,6 +246,63 @@ export function PriceChart({ ticker, bars, latestClose, loading, timeframe, onTi
           stroke="rgba(0,0,0,0.4)"
           strokeWidth={1}
         />
+
+        {/* Crosshair on hover */}
+        {hoverBar && hoverIndex !== null && (
+          <g>
+            {/* Vertical line */}
+            <line
+              x1={hoverX}
+              x2={hoverX}
+              y1={PAD_TOP}
+              y2={PAD_TOP + chartH}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+            {/* Horizontal line */}
+            <line
+              x1={padX}
+              x2={VIEW_W - padX}
+              y1={hoverY}
+              y2={hoverY}
+              stroke="rgba(255,255,255,0.2)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+            {/* Dot */}
+            <circle
+              cx={hoverX}
+              cy={hoverY}
+              r={4}
+              fill={lineColor}
+              stroke="#0a0a0a"
+              strokeWidth={2}
+            />
+            {/* Tooltip bg */}
+            <rect
+              x={hoverX - 50}
+              y={hoverY - 32}
+              width={100}
+              height={22}
+              rx={2}
+              fill="#1a1a1a"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth={1}
+            />
+            {/* Tooltip text */}
+            <text
+              x={hoverX}
+              y={hoverY - 18}
+              textAnchor="middle"
+              fontSize={9}
+              fill="#e0e0e0"
+              fontFamily="monospace"
+            >
+              {hoverBar.date} · {fmtPrice(hoverBar.close)}
+            </text>
+          </g>
+        )}
 
         {/* X-axis date labels */}
         <text

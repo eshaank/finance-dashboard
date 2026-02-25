@@ -8,6 +8,7 @@ const storage = createLocalStorage()
 export function useWidgetDashboard() {
   const [state, setState] = useState<DashboardState>(() => storage.load())
   const [isEditing, setIsEditing] = useState(false)
+  const [linkedTicker, setLinkedTicker] = useState('AAPL')
   const initialLoad = useRef(true)
 
   useEffect(() => {
@@ -78,5 +79,7 @@ export function useWidgetDashboard() {
     updateWidgetConfig,
     updateWidgetPosition,
     resetToDefault,
+    linkedTicker,
+    setLinkedTicker,
   }
 }

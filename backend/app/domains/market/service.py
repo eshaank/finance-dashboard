@@ -11,6 +11,6 @@ def validate_timeframe(timeframe: str) -> None:
 
 def bars_to_ohlc(bars: list[DailyBar]) -> list[OHLCBar]:
     return [
-        OHLCBar(date=b.date, open=b.open, high=b.high, low=b.low, close=b.close)
+        OHLCBar(date=b.date, open=b.open, high=b.high, low=b.low, close=b.close, volume=b.volume)
         for b in bars
     ]

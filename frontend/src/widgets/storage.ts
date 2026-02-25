@@ -1,7 +1,7 @@
 import type { DashboardState, WidgetInstance } from './types'
 
 const STORAGE_KEY = 'finance-dashboard-widgets'
-const CURRENT_VERSION = 3
+const CURRENT_VERSION = 6
 
 export interface WidgetStorage {
   load(): DashboardState
@@ -11,16 +11,16 @@ export interface WidgetStorage {
 function defaultState(): DashboardState {
   const defaults: WidgetInstance[] = [
     {
-      id: 'default-market-indices',
-      type: 'market-indices',
+      id: 'default-quote-monitor',
+      type: 'quote-monitor',
       config: {},
-      layout: { x: 0, y: 0, w: 1200, h: 220 },
+      layout: { x: 0, y: 0, w: 480, h: 200 },
     },
     {
       id: 'default-price-chart',
       type: 'price-chart',
-      config: { ticker: 'SPY', timeframe: '6M' },
-      layout: { x: 0, y: 224, w: 600, h: 360 },
+      config: { ticker: 'AAPL', timeframe: '6M' },
+      layout: { x: 482, y: 0, w: 420, h: 200 },
     },
   ]
   return { widgets: defaults, version: CURRENT_VERSION }

@@ -1,11 +1,8 @@
 import type { ComponentType } from 'react'
 
 export type WidgetTypeId =
-  | 'market-indices'
+  | 'quote-monitor'
   | 'price-chart'
-  | 'upcoming-events'
-  | 'economic-calendar'
-  | 'company-info'
 
 export interface WidgetLayout {
   x: number       // px from left
@@ -28,6 +25,8 @@ export interface WidgetProps {
   onConfigChange: (config: Record<string, unknown>) => void
   onRemove: () => void
   isEditing: boolean
+  linkedTicker?: string
+  onLinkedTickerChange?: (ticker: string) => void
 }
 
 export type WidgetCategory = 'market' | 'economics' | 'research'

@@ -41,6 +41,7 @@ export interface OHLCBar {
   high: number
   low: number
   close: number
+  volume: number
 }
 
 export type ChartTimeframe = '1D' | '1W' | '1M' | '6M' | '12M' | '5Y' | 'Max'

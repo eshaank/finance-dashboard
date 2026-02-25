@@ -1,5 +1,2 @@
-import './MarketIndicesWidget'
+import './QuoteMonitorWidget'
 import './PriceChartWidget'
-import './UpcomingEventsWidget'
-import './EconomicCalendarWidget'
-import './CompanyInfoWidget'

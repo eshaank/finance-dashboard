@@ -10,6 +10,8 @@ interface TerminalWorkspaceProps {
   onPositionChange: (id: string, x: number, y: number) => void
   onRemove: (id: string) => void
   onConfigChange: (id: string, config: Record<string, unknown>) => void
+  linkedTicker: string
+  onLinkedTickerChange: (ticker: string) => void
 }
 
 export function TerminalWorkspace({
@@ -18,11 +20,14 @@ export function TerminalWorkspace({
   onPositionChange,
   onRemove,
   onConfigChange,
+  linkedTicker,
+  onLinkedTickerChange,
 }: TerminalWorkspaceProps) {
   const [zCounter, setZCounter] = useState(10)
   const [zMap, setZMap] = useState<Record<string, number>>({})
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({})
   const [focusedId, setFocusedId] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const bringToFront = useCallback((id: string) => {
     setZCounter((prev) => {
@@ -48,7 +53,7 @@ export function TerminalWorkspace({
   }
 
   return (
-    <div className="terminal-workspace relative w-full">
+    <div ref={containerRef} className="terminal-workspace relative w-full">
       {widgets.map((widget) => {
         const ref = getNodeRef(widget.id)
         return (
@@ -59,15 +64,15 @@ export function TerminalWorkspace({
             position={{ x: widget.layout.x, y: widget.layout.y }}
             onStop={(e, data) => handleDragStop(e, data, widget.id)}
             onStart={() => bringToFront(widget.id)}
-            bounds={false}
+            bounds="parent"
           >
             <div
               ref={ref}
-              className="group"
+              className="group widget-resizable"
               style={{
                 position: 'absolute',
                 width: widget.layout.w,
-                height: widget.layout.h,
+                minHeight: widget.layout.h,
                 zIndex: zMap[widget.id] ?? widget.layout.zIndex ?? 1,
               }}
             >
@@ -78,6 +83,8 @@ export function TerminalWorkspace({
                 onRemove={onRemove}
                 onConfigChange={onConfigChange}
                 onFocus={bringToFront}
+                linkedTicker={linkedTicker}
+                onLinkedTickerChange={onLinkedTickerChange}
               />
             </div>
           </Draggable>

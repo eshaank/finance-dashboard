@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Clock, LogOut, User } from 'lucide-react'
+import { Clock, LogOut, User, ArrowLeft, Plus, Search } from 'lucide-react'
 import { useClock } from '../../hooks/useClock'
 import { useAuth } from '../../contexts/AuthContext'
 import { HeaderNavTabs } from './NavTabs'
@@ -33,9 +33,13 @@ interface HeaderProps {
   activeView: ViewId
   onTabChange: (tab: TabId) => void
   onGoHome: () => void
+  isTerminalMode?: boolean
+  onExitTerminal?: () => void
+  onAddWidgetClick?: () => void
+  onCommandPaletteOpen?: () => void
 }
 
-export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
+export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onExitTerminal, onAddWidgetClick, onCommandPaletteOpen }: HeaderProps) {
   const now = useClock()
   const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -77,6 +81,59 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
     ?? 'User'
+
+  if (isTerminalMode) {
+    return (
+      <header className="h-9 bg-dash-header border-b border-dash-border sticky top-0 z-50 flex items-center px-3 gap-4">
+        {/* Left: Logo + Exit */}
+        <div className="flex items-center gap-2 shrink-0">
+          <img src="/logo.svg" alt="3Epsilon" className="w-5 h-5 rounded-sm" />
+          <button
+            onClick={onExitTerminal}
+            className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-dash-muted hover:text-dash-text hover:bg-white/5 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            Exit Terminal
+          </button>
+        </div>
+
+        {/* Center: Shortcut chips + add + search */}
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-white/5 text-dash-muted border border-dash-border">
+            QM
+          </span>
+          <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-white/5 text-dash-muted border border-dash-border">
+            G
+          </span>
+          <button
+            onClick={onAddWidgetClick}
+            className="flex items-center justify-center w-5 h-5 text-dash-muted hover:text-dash-text hover:bg-white/10 transition-colors cursor-pointer"
+            title="Add widget"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onCommandPaletteOpen}
+            className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono text-dash-muted hover:text-dash-text hover:bg-white/5 border border-dash-border transition-colors cursor-pointer ml-2"
+            title="Command palette ( / )"
+          >
+            <Search className="w-3 h-3" />
+            <span className="hidden sm:inline">/</span>
+          </button>
+        </div>
+
+        {/* Right: Clock + status + user */}
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="font-mono text-[11px] text-dash-muted">{timeStr}</span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-dash-green pulse-dot" />
+            <span className="text-[10px] text-dash-muted">MKT</span>
+          </div>
+          <span className="text-[11px] text-dash-muted truncate max-w-[80px]">{displayName}</span>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <header className="border-b border-white/5 bg-dash-surface/50 backdrop-blur-xl sticky top-0 z-50">
