@@ -28,3 +28,16 @@ class PriceChartResult(BaseModel):
     timeframe: str
     bars: list[OHLCBar]
     latest_close: float
+
+
+class TickerQuote(BaseModel):
+    ticker: str
+    last: float
+    change: float
+    change_percent: float
+    volume: float
+    prev_close: float
+
+
+class QuotesResult(BaseModel):
+    quotes: list[TickerQuote]

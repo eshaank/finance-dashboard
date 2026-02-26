@@ -6,11 +6,12 @@ import { PriceChart } from '../../components/research/PriceChart'
 import { usePriceChart } from '../../hooks/usePriceChart'
 import type { ChartTimeframe } from '../../types'
 
-function PriceChartWidget({ config, onConfigChange, linkedTicker, onLinkedTickerChange }: WidgetProps) {
-  const ticker = linkedTicker || (config.ticker as string) || 'AAPL'
+function PriceChartWidget({ config, onConfigChange, onTickerChange }: WidgetProps) {
+  const ticker = (config.ticker as string) || 'AAPL'
   const timeframe = (config.timeframe as ChartTimeframe) || '6M'
   const [input, setInput] = useState(ticker)
 
+  // Sync input when ticker changes externally (e.g. /go command, link channel)
   useEffect(() => {
     setInput(ticker)
   }, [ticker])
@@ -21,7 +22,7 @@ function PriceChartWidget({ config, onConfigChange, linkedTicker, onLinkedTicker
     const t = input.trim().toUpperCase()
     if (t && t !== ticker) {
       onConfigChange({ ...config, ticker: t })
-      onLinkedTickerChange?.(t)
+      onTickerChange?.(t)
     }
   }
 

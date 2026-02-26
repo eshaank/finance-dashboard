@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Clock, LogOut, User, ArrowLeft, Plus, Search } from 'lucide-react'
+import { Clock, LogOut, User, ArrowLeft, Plus, Search, X, Terminal } from 'lucide-react'
 import { useClock } from '../../hooks/useClock'
 import { useAuth } from '../../contexts/AuthContext'
 import { HeaderNavTabs } from './NavTabs'
@@ -37,9 +37,11 @@ interface HeaderProps {
   onExitTerminal?: () => void
   onAddWidgetClick?: () => void
   onCommandPaletteOpen?: () => void
+  onAddWidget?: (type: 'quote-monitor' | 'price-chart') => void
+  onOpenTerminal?: () => void
 }
 
-export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onExitTerminal, onAddWidgetClick, onCommandPaletteOpen }: HeaderProps) {
+export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onExitTerminal, onAddWidgetClick, onCommandPaletteOpen, onAddWidget, onOpenTerminal }: HeaderProps) {
   const now = useClock()
   const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -84,52 +86,48 @@ export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onEx
 
   if (isTerminalMode) {
     return (
-      <header className="h-9 bg-dash-header border-b border-dash-border sticky top-0 z-50 flex items-center px-3 gap-4">
-        {/* Left: Logo + Exit */}
-        <div className="flex items-center gap-2 shrink-0">
-          <img src="/logo.svg" alt="3Epsilon" className="w-5 h-5 rounded-sm" />
-          <button
-            onClick={onExitTerminal}
-            className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-dash-muted hover:text-dash-text hover:bg-white/5 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            Exit Terminal
-          </button>
-        </div>
+      <header className="h-8 bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-50 flex items-center px-3 gap-3">
+        {/* Left: prompt + hint */}
+        <button
+          onClick={onCommandPaletteOpen}
+          className="flex-1 flex items-center gap-2 min-w-0 cursor-pointer group"
+        >
+          <span className="text-[#9a2240] text-sm font-mono font-bold shrink-0">&gt;</span>
+          <span className="text-[12px] font-mono text-white/25 group-hover:text-white/40 transition-colors truncate">
+            Press <span className="text-white/40 group-hover:text-white/55">/</span> to open command palette
+          </span>
+        </button>
 
-        {/* Center: Shortcut chips + add + search */}
-        <div className="flex-1 flex items-center justify-center gap-2">
-          <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-white/5 text-dash-muted border border-dash-border">
+        {/* Right: chips + settings */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onAddWidget?.('quote-monitor')}
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
+            title="Add Quote Monitor"
+          >
             QM
-          </span>
-          <span className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider bg-white/5 text-dash-muted border border-dash-border">
+          </button>
+          <button
+            onClick={() => onAddWidget?.('price-chart')}
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
+            title="Add Price Chart"
+          >
             G
-          </span>
+          </button>
           <button
             onClick={onAddWidgetClick}
-            className="flex items-center justify-center w-5 h-5 text-dash-muted hover:text-dash-text hover:bg-white/10 transition-colors cursor-pointer"
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
             title="Add widget"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3 h-3" />
           </button>
           <button
-            onClick={onCommandPaletteOpen}
-            className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono text-dash-muted hover:text-dash-text hover:bg-white/5 border border-dash-border transition-colors cursor-pointer ml-2"
-            title="Command palette ( / )"
+            onClick={onExitTerminal}
+            className="ml-1 p-0.5 text-white/20 hover:text-white/50 transition-colors cursor-pointer"
+            title="Exit terminal"
           >
-            <Search className="w-3 h-3" />
-            <span className="hidden sm:inline">/</span>
+            <X className="w-3.5 h-3.5" />
           </button>
-        </div>
-
-        {/* Right: Clock + status + user */}
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="font-mono text-[11px] text-dash-muted">{timeStr}</span>
-          <div className="flex items-center gap-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-dash-green pulse-dot" />
-            <span className="text-[10px] text-dash-muted">MKT</span>
-          </div>
-          <span className="text-[11px] text-dash-muted truncate max-w-[80px]">{displayName}</span>
         </div>
       </header>
     )
@@ -162,15 +160,24 @@ export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onEx
 
           {/* Nav */}
           <HeaderNavTabs
-            activeTab={activeView === 'home' ? null : activeView}
+            activeTab={activeView === 'home' || activeView === 'terminal' ? null : activeView}
             onTabChange={onTabChange}
           />
 
           {/* Right controls */}
           <div className="flex shrink-0 items-center gap-2 md:gap-3">
-            {activeView === 'home' && (
-              <div id="dashboard-controls" className="flex items-center gap-1.5" />
-            )}
+            <button
+              onClick={onOpenTerminal}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                activeView === 'terminal'
+                  ? 'bg-accent/15 text-accent'
+                  : 'bg-dash-surface-2/60 text-white/50 hover:text-white/80 hover:bg-dash-surface-2/80'
+              }`}
+              title="Open Terminal"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span className="hidden sm:block text-xs font-medium">Terminal</span>
+            </button>
 
             {/* Clock + timezone */}
             <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-dash-surface-2/60 relative" ref={tzRef}>

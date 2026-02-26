@@ -53,6 +53,15 @@ export interface PriceChartResult {
   latest_close: number
 }
 
+export interface TickerQuote {
+  ticker: string
+  last: number
+  change: number
+  change_percent: number
+  volume: number
+  prev_close: number
+}
+
 export interface InsideDayResult {
   ticker: string
   consecutive_inside_days: number

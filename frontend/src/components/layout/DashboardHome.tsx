@@ -7,9 +7,10 @@ import { CommandPalette } from '../terminal/CommandPalette'
 interface DashboardHomeProps {
   onAddWidgetClick?: (handler: () => void) => void
   onCommandPaletteOpen?: (handler: () => void) => void
+  onRegisterAddWidget?: (handler: (type: WidgetTypeId) => void) => void
 }
 
-export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen }: DashboardHomeProps) {
+export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen, onRegisterAddWidget }: DashboardHomeProps) {
   const {
     widgets,
     isEditing,
@@ -18,8 +19,11 @@ export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen }: Dashbo
     updateWidgetConfig,
     updateWidgetPosition,
     resetToDefault,
-    linkedTicker,
-    setLinkedTicker,
+    focusedWidgetId,
+    setFocusedWidgetId,
+    broadcastTicker,
+    setTickerForFocused,
+    setLinkChannel,
   } = useWidgetDashboard()
 
   const [addMenuOpen, setAddMenuOpen] = useState(false)
@@ -38,10 +42,13 @@ export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen }: Dashbo
     onCommandPaletteOpen?.(openPalette)
   }, [onCommandPaletteOpen, openPalette])
 
+  useEffect(() => {
+    onRegisterAddWidget?.(addWidget)
+  }, [onRegisterAddWidget, addWidget])
+
   // Global "/" keypress to open command palette
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Don't trigger if typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
@@ -80,8 +87,9 @@ export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen }: Dashbo
         onPositionChange={updateWidgetPosition}
         onRemove={removeWidget}
         onConfigChange={updateWidgetConfig}
-        linkedTicker={linkedTicker}
-        onLinkedTickerChange={setLinkedTicker}
+        onFocusChange={setFocusedWidgetId}
+        onBroadcastTicker={broadcastTicker}
+        onSetLinkChannel={setLinkChannel}
       />
 
       {/* Add widget dropdown — positioned at top center */}
@@ -123,7 +131,7 @@ export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen }: Dashbo
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onAddWidget={addWidget}
-        onSetTicker={setLinkedTicker}
+        onSetTicker={setTickerForFocused}
         onResetLayout={resetToDefault}
       />
     </main>

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Search, BarChart3, LineChart, RotateCcw, Crosshair } from 'lucide-react'
+import { BarChart3, LineChart, RotateCcw, Crosshair } from 'lucide-react'
 import type { WidgetTypeId } from '../../widgets'
 
 interface Command {
   id: string
   label: string
   description: string
-  icon: typeof Search
+  icon: typeof BarChart3
   action: () => void
   keywords: string[]
 }
@@ -29,12 +29,13 @@ export function CommandPalette({
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   const commands = useMemo<Command[]>(() => [
     {
       id: 'add-quote-monitor',
       label: 'Add Quote Monitor',
-      description: 'Add a new watchlist panel',
+      description: 'New watchlist panel',
       icon: BarChart3,
       action: () => { onAddWidget('quote-monitor'); onClose() },
       keywords: ['add', 'quote', 'monitor', 'watchlist', 'qm'],
@@ -42,7 +43,7 @@ export function CommandPalette({
     {
       id: 'add-price-chart',
       label: 'Add Price Chart',
-      description: 'Add a new chart panel',
+      description: 'New chart panel',
       icon: LineChart,
       action: () => { onAddWidget('price-chart'); onClose() },
       keywords: ['add', 'chart', 'price', 'graph', 'g'],
@@ -50,7 +51,7 @@ export function CommandPalette({
     {
       id: 'reset-layout',
       label: 'Reset Layout',
-      description: 'Reset all panels to default positions',
+      description: 'Reset panels to defaults',
       icon: RotateCcw,
       action: () => { onResetLayout(); onClose() },
       keywords: ['reset', 'layout', 'default', 'restore'],
@@ -58,7 +59,7 @@ export function CommandPalette({
     {
       id: 'go-ticker',
       label: 'Go to Ticker',
-      description: 'Switch to a specific ticker (type: /go AAPL)',
+      description: '/go AAPL',
       icon: Crosshair,
       action: () => {
         const parts = query.split(/\s+/)
@@ -97,6 +98,18 @@ export function CommandPalette({
     }
   }, [open])
 
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open, onClose])
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       onClose()
@@ -117,70 +130,61 @@ export function CommandPalette({
   if (!open) return null
 
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/50 z-[100]"
-        onClick={onClose}
-      />
-      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-md z-[101] animate-slide-fade">
-        <div className="bg-dash-surface border border-dash-border shadow-2xl overflow-hidden">
-          {/* Input */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-dash-border">
-            <Search className="w-4 h-4 text-dash-muted shrink-0" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a command..."
-              className="flex-1 bg-transparent text-sm font-mono text-dash-text placeholder:text-dash-muted/50 focus:outline-none"
-            />
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-dash-muted bg-white/5 border border-dash-border">
-              ESC
-            </kbd>
-          </div>
+    <div ref={panelRef} className="fixed top-0 left-0 right-0 z-[101]">
+      {/* Input bar — replaces the header */}
+      <div className="h-8 bg-[#1a1a1a] border-b border-[#2a2a2a] flex items-center px-3 gap-2">
+        <span className="text-[#9a2240] text-sm font-mono font-bold shrink-0">&gt;</span>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a command..."
+          className="flex-1 bg-transparent text-[12px] font-mono text-dash-text placeholder:text-white/25 focus:outline-none"
+        />
+        <kbd className="px-1 py-0.5 text-[9px] font-mono text-white/30 bg-white/5 border border-white/10">
+          ESC
+        </kbd>
+      </div>
 
-          {/* Results */}
-          <div className="max-h-64 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-dash-muted">
-                No matching commands
-              </div>
-            ) : (
-              filtered.map((cmd, i) => {
-                const Icon = cmd.icon
-                return (
-                  <button
-                    key={cmd.id}
-                    onClick={cmd.action}
-                    onMouseEnter={() => setSelectedIndex(i)}
-                    className={`flex items-center gap-3 w-full px-3 py-2 text-left transition-colors cursor-pointer ${
-                      i === selectedIndex ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 text-dash-muted shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-dash-text block">{cmd.label}</span>
-                      <span className="text-[11px] text-dash-muted block truncate">{cmd.description}</span>
-                    </div>
-                  </button>
-                )
-              })
-            )}
-          </div>
-
-          {/* Footer hint */}
-          <div className="px-3 py-1.5 border-t border-dash-border flex items-center gap-3">
-            <span className="text-[10px] font-mono text-dash-muted/50">
-              <kbd className="px-1 py-0.5 bg-white/5 border border-dash-border text-[9px]">↑↓</kbd> navigate
-            </span>
-            <span className="text-[10px] font-mono text-dash-muted/50">
-              <kbd className="px-1 py-0.5 bg-white/5 border border-dash-border text-[9px]">↵</kbd> select
-            </span>
-          </div>
+      {/* Results dropdown */}
+      <div className="bg-[#1a1a1a] border-b border-[#2a2a2a] shadow-2xl">
+        <div className="max-h-52 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-3 text-center text-[11px] font-mono text-white/25">
+              No matching commands
+            </div>
+          ) : (
+            filtered.map((cmd, i) => {
+              const Icon = cmd.icon
+              return (
+                <button
+                  key={cmd.id}
+                  onClick={cmd.action}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  className={`flex items-center gap-2.5 w-full px-3 h-8 text-left transition-colors cursor-pointer ${
+                    i === selectedIndex ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 text-white/20 shrink-0" />
+                  <span className="text-[12px] font-mono text-dash-text">{cmd.label}</span>
+                  <span className="text-[10px] font-mono text-white/20 ml-auto">{cmd.description}</span>
+                </button>
+              )
+            })
+          )}
+        </div>
+        {/* Footer */}
+        <div className="px-3 py-1 border-t border-white/5 flex items-center gap-3">
+          <span className="text-[9px] font-mono text-white/20">
+            <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 text-[8px]">↑↓</kbd> navigate
+          </span>
+          <span className="text-[9px] font-mono text-white/20">
+            <kbd className="px-1 py-0.5 bg-white/5 border border-white/10 text-[8px]">↵</kbd> select
+          </span>
         </div>
       </div>
-    </>
+    </div>
   )
 }

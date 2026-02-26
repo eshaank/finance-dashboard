@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Draggable from 'react-draggable'
 import type { DraggableEvent, DraggableData } from 'react-draggable'
 import { TerminalPanel } from './TerminalPanel'
-import type { WidgetInstance } from '../types'
+import type { WidgetInstance, LinkChannel } from '../types'
 
 interface TerminalWorkspaceProps {
   widgets: WidgetInstance[]
@@ -10,8 +10,9 @@ interface TerminalWorkspaceProps {
   onPositionChange: (id: string, x: number, y: number) => void
   onRemove: (id: string) => void
   onConfigChange: (id: string, config: Record<string, unknown>) => void
-  linkedTicker: string
-  onLinkedTickerChange: (ticker: string) => void
+  onFocusChange: (id: string) => void
+  onBroadcastTicker: (sourceWidgetId: string, ticker: string) => void
+  onSetLinkChannel: (id: string, channel: LinkChannel) => void
 }
 
 export function TerminalWorkspace({
@@ -20,14 +21,33 @@ export function TerminalWorkspace({
   onPositionChange,
   onRemove,
   onConfigChange,
-  linkedTicker,
-  onLinkedTickerChange,
+  onFocusChange,
+  onBroadcastTicker,
+  onSetLinkChannel,
 }: TerminalWorkspaceProps) {
   const [zCounter, setZCounter] = useState(10)
   const [zMap, setZMap] = useState<Record<string, number>>({})
-  const nodeRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({})
   const [focusedId, setFocusedId] = useState<string | null>(null)
+  const nodeRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({})
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-bring new widgets to front
+  const knownIds = useRef(new Set(widgets.map((w) => w.id)))
+  useEffect(() => {
+    const currentIds = new Set(widgets.map((w) => w.id))
+    for (const id of currentIds) {
+      if (!knownIds.current.has(id)) {
+        setZCounter((prev) => {
+          const next = prev + 1
+          setZMap((m) => ({ ...m, [id]: next }))
+          return next
+        })
+        setFocusedId(id)
+        onFocusChange(id)
+      }
+    }
+    knownIds.current = currentIds
+  }, [widgets, onFocusChange])
 
   const bringToFront = useCallback((id: string) => {
     setZCounter((prev) => {
@@ -36,7 +56,8 @@ export function TerminalWorkspace({
       return next
     })
     setFocusedId(id)
-  }, [])
+    onFocusChange(id)
+  }, [onFocusChange])
 
   const handleDragStop = useCallback(
     (_e: DraggableEvent, data: DraggableData, id: string) => {
@@ -83,8 +104,8 @@ export function TerminalWorkspace({
                 onRemove={onRemove}
                 onConfigChange={onConfigChange}
                 onFocus={bringToFront}
-                linkedTicker={linkedTicker}
-                onLinkedTickerChange={onLinkedTickerChange}
+                onBroadcastTicker={onBroadcastTicker}
+                onSetLinkChannel={onSetLinkChannel}
               />
             </div>
           </Draggable>

@@ -2,24 +2,7 @@ import { useState, useMemo } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { registerWidget } from '../registry'
 import type { WidgetProps } from '../types'
-
-interface QuoteRow {
-  ticker: string
-  last: number
-  changePct: number
-  volume: number
-}
-
-const MOCK_DATA: QuoteRow[] = [
-  { ticker: 'AAPL', last: 189.84, changePct: 1.23, volume: 47_000_000 },
-  { ticker: 'MSFT', last: 378.91, changePct: 0.67, volume: 22_100_000 },
-  { ticker: 'GOOGL', last: 141.80, changePct: -0.45, volume: 18_500_000 },
-  { ticker: 'AMZN', last: 178.25, changePct: 2.10, volume: 35_200_000 },
-  { ticker: 'TSLA', last: 248.42, changePct: -1.87, volume: 98_400_000 },
-  { ticker: 'SPY', last: 502.65, changePct: 0.34, volume: 62_300_000 },
-  { ticker: 'QQQ', last: 431.12, changePct: 0.58, volume: 41_000_000 },
-  { ticker: 'NVDA', last: 721.33, changePct: 3.42, volume: 55_700_000 },
-]
+import { useQuotes } from '../../hooks/useQuotes'
 
 type SortKey = 'ticker' | 'last' | 'changePct' | 'volume'
 type SortDir = 'asc' | 'desc'
@@ -40,11 +23,27 @@ function fmtChange(v: number): string {
   return `${sign}${v.toFixed(2)}%`
 }
 
-function QuoteMonitorWidget({ linkedTicker, onLinkedTickerChange }: WidgetProps) {
-  const [rows, setRows] = useState<QuoteRow[]>(MOCK_DATA)
+const DEFAULT_WATCHLIST = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'SPY', 'QQQ', 'NVDA']
+
+function QuoteMonitorWidget({ config, onConfigChange, onTickerChange }: WidgetProps) {
+  const watchlist = (config.watchlist as string[] | undefined) ?? DEFAULT_WATCHLIST
+  const { quotes, loading } = useQuotes(watchlist)
+
   const [sortKey, setSortKey] = useState<SortKey>('ticker')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [newTicker, setNewTicker] = useState('')
+
+  const rows = useMemo(() => {
+    return watchlist.map((ticker) => {
+      const q = quotes.find((q) => q.ticker === ticker)
+      return {
+        ticker,
+        last: q?.last ?? 0,
+        changePct: q?.change_percent ?? 0,
+        volume: q?.volume ?? 0,
+      }
+    })
+  }, [watchlist, quotes])
 
   const sorted = useMemo(() => {
     const copy = [...rows]
@@ -71,19 +70,11 @@ function QuoteMonitorWidget({ linkedTicker, onLinkedTickerChange }: WidgetProps)
 
   function handleAddTicker() {
     const t = newTicker.trim().toUpperCase()
-    if (!t || rows.some((r) => r.ticker === t)) {
+    if (!t || watchlist.includes(t)) {
       setNewTicker('')
       return
     }
-    setRows((prev) => [
-      ...prev,
-      {
-        ticker: t,
-        last: Math.round(Math.random() * 500 * 100) / 100,
-        changePct: Math.round((Math.random() * 10 - 5) * 100) / 100,
-        volume: Math.round(Math.random() * 80_000_000),
-      },
-    ])
+    onConfigChange({ ...config, watchlist: [...watchlist, t] })
     setNewTicker('')
   }
 
@@ -113,6 +104,9 @@ function QuoteMonitorWidget({ linkedTicker, onLinkedTickerChange }: WidgetProps)
         <span className="px-2 py-0.5 text-[10px] font-mono text-dash-muted cursor-pointer hover:text-dash-text">
           +
         </span>
+        {loading && (
+          <span className="ml-auto text-[9px] font-mono text-dash-muted animate-pulse">LOADING</span>
+        )}
       </div>
 
       {/* Table header */}
@@ -132,7 +126,6 @@ function QuoteMonitorWidget({ linkedTicker, onLinkedTickerChange }: WidgetProps)
       {/* Rows */}
       <div className="overflow-y-auto">
         {sorted.map((row) => {
-          const isActive = linkedTicker === row.ticker
           const changeColor =
             row.changePct > 0
               ? 'text-dash-green'
@@ -143,22 +136,20 @@ function QuoteMonitorWidget({ linkedTicker, onLinkedTickerChange }: WidgetProps)
           return (
             <button
               key={row.ticker}
-              onClick={() => onLinkedTickerChange?.(row.ticker)}
-              className={`grid grid-cols-[1fr_80px_70px_70px] w-full px-2 h-7 items-center transition-colors cursor-pointer ${
-                isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
-              }`}
+              onClick={() => onTickerChange?.(row.ticker)}
+              className="grid grid-cols-[1fr_80px_70px_70px] w-full px-2 h-7 items-center transition-colors cursor-pointer hover:bg-white/[0.03]"
             >
               <span className="text-xs font-mono font-bold text-dash-text text-left truncate">
                 {row.ticker} <span className="font-normal text-dash-muted">US</span>
               </span>
               <span className="text-xs font-mono text-dash-text text-right">
-                {fmtPrice(row.last)}
+                {row.last > 0 ? fmtPrice(row.last) : '—'}
               </span>
               <span className={`text-xs font-mono text-right ${changeColor}`}>
-                {fmtChange(row.changePct)}
+                {row.last > 0 ? fmtChange(row.changePct) : '—'}
               </span>
               <span className="text-xs font-mono text-dash-muted text-right">
-                {fmtVolume(row.volume)}
+                {row.volume > 0 ? fmtVolume(row.volume) : '—'}
               </span>
             </button>
           )
@@ -186,7 +177,7 @@ registerWidget({
   description: 'Bloomberg-style watchlist with live quotes',
   icon: 'BarChart3',
   category: 'market',
-  defaultConfig: {},
+  defaultConfig: { watchlist: DEFAULT_WATCHLIST },
   defaultLayout: { w: 480, h: 200 },
   component: QuoteMonitorWidget,
 })

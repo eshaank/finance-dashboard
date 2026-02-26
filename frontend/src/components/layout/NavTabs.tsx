@@ -3,8 +3,8 @@ import { ChevronDown } from 'lucide-react'
 
 export type TabId = 'us-economics' | 'markets' | 'research' | 'scanner'
 
-/** Current view: dashboard home (customizable) or a nav tab. */
-export type ViewId = 'home' | TabId
+/** Current view: dashboard home, terminal workspace, or a nav tab. */
+export type ViewId = 'home' | 'terminal' | TabId
 
 interface NavItem {
   id: TabId | string

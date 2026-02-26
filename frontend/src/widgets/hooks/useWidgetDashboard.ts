@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { WidgetTypeId, DashboardState } from '../types'
+import type { WidgetTypeId, DashboardState, LinkChannel } from '../types'
 import { getWidgetDefinition } from '../registry'
 import { createLocalStorage } from '../storage'
 
@@ -8,7 +8,7 @@ const storage = createLocalStorage()
 export function useWidgetDashboard() {
   const [state, setState] = useState<DashboardState>(() => storage.load())
   const [isEditing, setIsEditing] = useState(false)
-  const [linkedTicker, setLinkedTicker] = useState('AAPL')
+  const focusedWidgetIdRef = useRef<string | null>(null)
   const initialLoad = useRef(true)
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export function useWidgetDashboard() {
           w: def.defaultLayout.w,
           h: def.defaultLayout.h,
         },
+        linkChannel: null as LinkChannel,
       }
       return { ...prev, widgets: [...prev.widgets, instance] }
     })
@@ -45,6 +46,9 @@ export function useWidgetDashboard() {
       ...prev,
       widgets: prev.widgets.filter((w) => w.id !== id),
     }))
+    if (focusedWidgetIdRef.current === id) {
+      focusedWidgetIdRef.current = null
+    }
   }, [])
 
   const updateWidgetConfig = useCallback((id: string, config: Record<string, unknown>) => {
@@ -65,9 +69,85 @@ export function useWidgetDashboard() {
     }))
   }, [])
 
+  const broadcastTicker = useCallback((sourceWidgetId: string, ticker: string) => {
+    setState((prev) => {
+      const source = prev.widgets.find((w) => w.id === sourceWidgetId)
+      if (!source) return prev
+
+      if (source.linkChannel === null) {
+        // Unlinked: only update the source widget
+        return {
+          ...prev,
+          widgets: prev.widgets.map((w) =>
+            w.id === sourceWidgetId
+              ? { ...w, config: { ...w.config, ticker } }
+              : w,
+          ),
+        }
+      }
+
+      // Linked: update all widgets in the same channel
+      const channel = source.linkChannel
+      return {
+        ...prev,
+        widgets: prev.widgets.map((w) =>
+          w.linkChannel === channel
+            ? { ...w, config: { ...w.config, ticker } }
+            : w,
+        ),
+      }
+    })
+  }, [])
+
+  const setTickerForFocused = useCallback((ticker: string) => {
+    const id = focusedWidgetIdRef.current
+    if (id) {
+      broadcastTicker(id, ticker)
+      return
+    }
+    // Nothing focused — target first price-chart, or first widget
+    setState((prev) => {
+      const target =
+        prev.widgets.find((w) => w.type === 'price-chart') ?? prev.widgets[0]
+      if (!target) return prev
+      if (target.linkChannel === null) {
+        return {
+          ...prev,
+          widgets: prev.widgets.map((w) =>
+            w.id === target.id
+              ? { ...w, config: { ...w.config, ticker } }
+              : w,
+          ),
+        }
+      }
+      const ch = target.linkChannel
+      return {
+        ...prev,
+        widgets: prev.widgets.map((w) =>
+          w.linkChannel === ch
+            ? { ...w, config: { ...w.config, ticker } }
+            : w,
+        ),
+      }
+    })
+  }, [broadcastTicker])
+
+  const setLinkChannel = useCallback((id: string, channel: LinkChannel) => {
+    setState((prev) => ({
+      ...prev,
+      widgets: prev.widgets.map((w) =>
+        w.id === id ? { ...w, linkChannel: channel } : w,
+      ),
+    }))
+  }, [])
+
   const resetToDefault = useCallback(() => {
     localStorage.removeItem('finance-dashboard-widgets')
     setState(storage.load())
+  }, [])
+
+  const setFocusedWidgetId = useCallback((id: string | null) => {
+    focusedWidgetIdRef.current = id
   }, [])
 
   return {
@@ -79,7 +159,10 @@ export function useWidgetDashboard() {
     updateWidgetConfig,
     updateWidgetPosition,
     resetToDefault,
-    linkedTicker,
-    setLinkedTicker,
+    focusedWidgetId: focusedWidgetIdRef.current,
+    setFocusedWidgetId,
+    broadcastTicker,
+    setTickerForFocused,
+    setLinkChannel,
   }
 }

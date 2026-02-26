@@ -4,6 +4,19 @@ export type WidgetTypeId =
   | 'quote-monitor'
   | 'price-chart'
 
+export type LinkChannel = null | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+
+export const LINK_CHANNEL_COLORS: Record<number, string> = {
+  1: '#ef4444', // red
+  2: '#f97316', // orange
+  3: '#eab308', // yellow
+  4: '#22c55e', // green
+  5: '#06b6d4', // cyan
+  6: '#3b82f6', // blue
+  7: '#a855f7', // purple
+  8: '#ec4899', // pink
+}
+
 export interface WidgetLayout {
   x: number       // px from left
   y: number       // px from top
@@ -17,6 +30,7 @@ export interface WidgetInstance {
   type: WidgetTypeId
   config: Record<string, unknown>
   layout: WidgetLayout
+  linkChannel: LinkChannel
 }
 
 export interface WidgetProps {
@@ -25,8 +39,9 @@ export interface WidgetProps {
   onConfigChange: (config: Record<string, unknown>) => void
   onRemove: () => void
   isEditing: boolean
-  linkedTicker?: string
-  onLinkedTickerChange?: (ticker: string) => void
+  isFocused: boolean
+  linkChannel: LinkChannel
+  onTickerChange?: (ticker: string) => void
 }
 
 export type WidgetCategory = 'market' | 'economics' | 'research'
