@@ -1,15 +1,27 @@
-import { BarChart3 } from 'lucide-react'
+import { KeyMarketsGrid } from './KeyMarketsGrid'
+import { KeyNewsSection } from './KeyNewsSection'
+import { SplitsCard } from './MarketDashboard/SplitsCard'
+import { DividendsCard } from './MarketDashboard/DividendsCard'
+import { IposCard } from './MarketDashboard/IposCard'
+import { RecentDataTable } from '../data/RecentDataTable'
 
 export function MarketsTab() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-5">
-        <BarChart3 className="w-7 h-7 text-accent" />
+    <div className="px-1.5 md:px-3 py-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          <KeyMarketsGrid />
+          <div className="grid grid-cols-3 gap-4">
+            <IposCard />
+            <SplitsCard />
+            <DividendsCard />
+          </div>
+        </div>
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          <KeyNewsSection />
+          <RecentDataTable />
+        </div>
       </div>
-      <h2 className="text-xl font-semibold text-dash-text mb-2">Markets</h2>
-      <p className="text-sm text-white/40 max-w-md">
-        Live market data, sector performance, and index tracking — coming soon.
-      </p>
     </div>
   )
 }

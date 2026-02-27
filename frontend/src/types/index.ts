@@ -221,3 +221,82 @@ export interface CountryRecord {
 export type IndicatorData = Record<string, CountryRecord>  // keyed by iso3
 
 export type AllIndicatorsData = Partial<Record<IndicatorId, IndicatorData>>
+
+// ── Market-Wide Data ──────────────────────────────────────────────────────────
+
+export interface MarketNewsItem {
+  id: string
+  title: string
+  description: string | null
+  article_url: string
+  published_utc: string
+  tickers: string[]
+  publisher_name?: string
+  publisher_homepage_url?: string | null
+  image_url?: string | null
+}
+
+export interface SplitItem {
+  ticker: string
+  execution_date: string
+  split_from: number
+  split_to: number
+  is_reverse: boolean
+}
+
+export interface DividendItem {
+  ticker: string
+  ex_dividend_date: string
+  cash_amount: number
+  frequency: string
+  dividend_type: string
+}
+
+export interface IpoItem {
+  ticker: string
+  name: string
+  listing_date: string
+  exchange: string
+}
+
+// ── Company-Specific Data ──────────────────────────────────────────────────────
+
+export interface CompanyNewsItem extends MarketNewsItem {}
+
+export interface DividendHistoryItem {
+  ticker: string
+  ex_dividend_date: string
+  cash_amount: number
+  pay_date?: string
+  record_date?: string
+  declaration_date?: string
+  frequency: string | null
+}
+
+export interface SplitHistoryItem {
+  ticker: string
+  execution_date: string
+  split_from: number
+  split_to: number
+  is_reverse: boolean
+}
+
+export interface SecFilingItem {
+  ticker: string
+  filing_type: string
+  filing_date: string
+  period_of_report_date?: string
+  link: string
+}
+
+// ── Chart Events ───────────────────────────────────────────────────────────────
+
+export interface ChartEvent {
+  date: string
+  type: 'dividend' | 'reverse-split' | 'split'
+  value: string
+  description: string
+}
+
+export type ChartType = 'line' | 'candle'
+export type CompanyTab = 'overview' | 'news' | 'financials' | 'actions' | 'ownership' | 'filings'

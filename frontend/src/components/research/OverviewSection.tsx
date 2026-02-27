@@ -1,34 +1,11 @@
-import { useState } from 'react'
-import type { ChartTimeframe, CompanyDetails, OHLCBar } from '../../types'
+import { useMemo } from 'react'
+import type { ChartTimeframe, CompanyDetails, OHLCBar, ChartEvent } from '../../types'
+import type { ChartType } from './PriceChart'
 import { cn } from '../../lib/utils'
 import { PriceChart } from './PriceChart'
-
-function fmtLarge(v: number): string {
-  const abs = Math.abs(v)
-  const sign = v < 0 ? '-' : ''
-  if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(2)}T`
-  if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`
-  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`
-  return `${sign}${(abs / 1e3).toFixed(2)}K`
-}
-
-interface StatCardProps {
-  label: string
-  value: string
-  accentColor?: string
-}
-
-function StatCard({ label, value, accentColor = 'border-l-accent/60' }: StatCardProps) {
-  return (
-    <div className={cn(
-      'rounded-xl px-4 py-3 bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.07] border-l-2',
-      accentColor,
-    )}>
-      <p className="text-xs text-white/40 mb-1">{label}</p>
-      <p className="text-lg font-display font-semibold text-white">{value}</p>
-    </div>
-  )
-}
+import { useDividendHistory } from '../../hooks/useDividendHistory'
+import { useSplitHistory } from '../../hooks/useSplitHistory'
+import { LineChart, BarChart3 } from 'lucide-react'
 
 interface Props {
   ticker: string
@@ -41,6 +18,8 @@ interface Props {
   companyLoading: boolean
 }
 
+const TIMEFRAMES: ChartTimeframe[] = ['1D', '1W', '1M', '6M', '12M', '5Y', 'Max']
+
 export function OverviewSection({
   ticker,
   chartBars,
@@ -51,23 +30,91 @@ export function OverviewSection({
   company,
   companyLoading,
 }: Props) {
-  const [showFullDesc, setShowFullDesc] = useState(false)
+  const chartType: ChartType = 'line'
   const bars = chartBars
-  const isUp = bars.length < 2 ? true : bars[bars.length - 1].close >= bars[bars.length - 2].close
+
+  // Calculate price change
+  const lastClose = chartLatestClose ?? (bars.length > 0 ? bars[bars.length - 1].close : 0)
+  const prevClose = bars.length >= 2 ? bars[bars.length - 2].close : lastClose
+  const change = lastClose - prevClose
+  const changePct = prevClose !== 0 ? (change / prevClose) * 100 : 0
+  const isPositive = change >= 0
+  const changeColor = isPositive ? 'text-dash-green' : 'text-dash-red'
+  const changeSign = isPositive ? '+' : ''
+  const lineColor = isPositive ? '#00cc66' : '#ff4444'
+
+  // Fetch dividends and splits
+  const { data: dividends } = useDividendHistory(ticker)
+  const { data: splits } = useSplitHistory(ticker)
+
+  // Transform to ChartEvent[]
+  const chartEvents: ChartEvent[] = useMemo(() => {
+    const events: ChartEvent[] = []
+    
+    // Add dividends
+    dividends?.forEach(d => {
+      events.push({
+        date: d.ex_dividend_date,
+        type: 'dividend',
+        value: d.cash_amount.toFixed(2),
+        description: `Ex-Dividend: $${d.cash_amount.toFixed(2)} (${d.frequency})`,
+      })
+    })
+    
+    // Add splits
+    splits?.forEach(s => {
+      events.push({
+        date: s.execution_date,
+        type: s.is_reverse ? 'reverse-split' : 'split',
+        value: `${s.split_from}:${s.split_to}`,
+        description: `${s.is_reverse ? 'Reverse ' : ''}Split ${s.split_from}:${s.split_to}`,
+      })
+    })
+    
+    return events
+  }, [dividends, splits])
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-5 items-start">
-      {/* Left: Price chart */}
-      <div
-        className={cn(
-          'glass-card rounded-xl p-5 border-l-2',
-          bars.length >= 2
-            ? isUp
-              ? 'border-l-emerald-500/60'
-              : 'border-l-rose-500/60'
-            : 'border-l-transparent',
-        )}
-      >
+    <div className="flex flex-col">
+      {/* Header section - Terminal style */}
+      <div className="px-3 pt-2 pb-1 shrink-0 border-b border-dash-border">
+        {/* Ticker display row */}
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-xs font-mono uppercase tracking-wider text-dash-muted">
+            {ticker} US
+          </span>
+          {!chartLoading && lastClose > 0 && (
+            <>
+              <span className="text-xl font-mono font-semibold text-dash-text">
+                {lastClose.toFixed(2)}
+              </span>
+              <span className={`text-sm font-mono ${changeColor}`}>
+                {changeSign}{change.toFixed(2)} ({changeSign}{changePct.toFixed(2)}%)
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Timeframe buttons */}
+        <div className="flex gap-0.5 mb-1">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf}
+              onClick={() => onChartTimeframeChange(tf)}
+              className={`px-2.5 py-1 text-[10px] font-mono font-medium uppercase transition-colors cursor-pointer ${
+                chartTimeframe === tf
+                  ? 'bg-accent-blue text-white'
+                  : 'bg-transparent text-dash-muted hover:text-dash-text'
+              }`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-[280px] px-1 py-1">
         <PriceChart
           ticker={ticker}
           bars={bars}
@@ -75,92 +122,30 @@ export function OverviewSection({
           loading={chartLoading}
           timeframe={chartTimeframe}
           onTimeframeChange={onChartTimeframeChange}
+          chartType={chartType}
+          events={chartEvents}
+          lineColor={lineColor}
+          hideHeader
+          hideTimeframes
+          hideChartToggle
         />
       </div>
 
-      {/* Right: Company details card */}
-      <div className="glass-card rounded-xl p-5 space-y-5">
-        {companyLoading && (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-4 rounded bg-white/[0.04] animate-pulse" />
-            ))}
-          </div>
-        )}
-        {!companyLoading && !company && (
-          <p className="text-white/30 text-sm">No company data available.</p>
-        )}
-        {company && (
-          <div className="animate-fade-in">
-            {/* Company identity row */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {company.logo_url && (
-                <img
-                  src={company.logo_url}
-                  alt={company.name}
-                  className="h-8 w-8 object-contain rounded-sm shrink-0"
-                />
-              )}
-              <div className="flex flex-col">
-                <span className="text-base font-semibold text-white">{company.name}</span>
-                <span className="text-xs font-mono text-white/40">{ticker}</span>
-              </div>
-              {company.primary_exchange && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-accent/20 border border-accent/30 text-accent-light">
-                  {company.primary_exchange}
-                </span>
-              )}
-            </div>
-
-            {company.sic_description && (
-              <div className="mt-3">
-                <span className="px-2.5 py-1 rounded-full text-xs bg-white/[0.06] border border-white/[0.08] text-white/50">
-                  {company.sic_description}
-                </span>
-              </div>
-            )}
-
-            {company.description && (
-              <div className="mt-4">
-                <p className={cn(
-                  'text-sm text-white/60 leading-relaxed',
-                  !showFullDesc && 'line-clamp-6',
-                )}>
-                  {company.description}
-                </p>
-                {company.description.length > 300 && (
-                  <button
-                    onClick={() => setShowFullDesc(!showFullDesc)}
-                    className="mt-1.5 text-xs text-accent-light hover:text-white/70 transition-colors"
-                  >
-                    {showFullDesc ? 'Show less' : 'Show more'}
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              {company.market_cap != null && (
-                <StatCard label="Mkt Cap" value={fmtLarge(company.market_cap)} accentColor="border-l-emerald-500/40" />
-              )}
-              {company.total_employees != null && (
-                <StatCard label="Employees" value={company.total_employees.toLocaleString()} accentColor="border-l-blue-500/40" />
-              )}
-            </div>
-
-            {company.homepage_url && (
-              <a
-                href={company.homepage_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/50 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:text-white/70 transition-all font-mono"
-              >
-                {company.homepage_url.replace(/^https?:\/\//, '')}
-                <span className="text-white/30">↗</span>
-              </a>
-            )}
-          </div>
-        )}
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-3 py-1 border-t border-dash-border shrink-0">
+        <button 
+          className="p-1 text-dash-muted hover:text-dash-text transition-colors cursor-pointer" 
+          title="Line chart"
+        >
+          <LineChart className="w-3.5 h-3.5" />
+        </button>
+        <button 
+          className="p-1 text-dash-muted hover:text-dash-text transition-colors cursor-pointer" 
+          title="Candlestick"
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+        </button>
+        <span className="text-[10px] font-mono text-dash-muted/50 ml-auto">Indicators</span>
       </div>
     </div>
   )

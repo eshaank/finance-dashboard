@@ -8,37 +8,33 @@ import { cn } from '../../lib/utils'
 import { CompanyHeader } from './CompanyHeader'
 import { OverviewSection } from './OverviewSection'
 import { FinancialsSection } from './FinancialsSection'
-import { ShortInterestSection } from './ShortInterestSection'
-import { FloatSection } from './FloatSection'
+import { OwnershipTab } from './OwnershipTab'
+import { NewsTab } from './NewsTab'
+import { ActionsTab } from './ActionsTab'
+import { FilingsTab } from './FilingsTab'
 
-type ResearchSection = 'overview' | 'financials' | 'short' | 'float'
+type CompanyTab = 'overview' | 'news' | 'financials' | 'actions' | 'ownership' | 'filings'
 type FinancialsSubTab = 'income-statement' | 'balance-sheet' | 'cash-flow'
-type ShortSubTab = 'short-interest' | 'short-volume'
 
-const SECTIONS: { id: ResearchSection; label: string }[] = [
+const TABS: { id: CompanyTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'news', label: 'News' },
   { id: 'financials', label: 'Financials' },
-  { id: 'short', label: 'Short Interest' },
-  { id: 'float', label: 'Float' },
+  { id: 'actions', label: 'Actions' },
+  { id: 'ownership', label: 'Ownership' },
+  { id: 'filings', label: 'Filings' },
 ]
 
-function getFundTab(
-  section: ResearchSection,
-  financialsTab: FinancialsSubTab,
-  shortTab: ShortSubTab,
-): FundamentalsTab {
-  if (section === 'financials') return financialsTab
-  if (section === 'short') return shortTab
-  if (section === 'float') return 'float'
+function getFundTab(tab: CompanyTab, financialsTab: FinancialsSubTab): FundamentalsTab {
+  if (tab === 'financials') return financialsTab
   return 'income-statement'
 }
 
 export function ResearchTab() {
   const [input, setInput] = useState('')
   const [activeTicker, setActiveTicker] = useState('')
-  const [activeSection, setActiveSection] = useState<ResearchSection>('overview')
+  const [activeTab, setActiveTab] = useState<CompanyTab>('overview')
   const [financialsTab, setFinancialsTab] = useState<FinancialsSubTab>('income-statement')
-  const [shortTab, setShortTab] = useState<ShortSubTab>('short-interest')
   const [timeframe, setTimeframe] = useState<'annual' | 'quarterly'>('annual')
   const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>('1M')
 
@@ -46,9 +42,9 @@ export function ResearchTab() {
   const { data: chartData, loading: chartLoading } = usePriceChart(activeTicker || null, chartTimeframe)
   const { data: companyData, loading: companyLoading } = useCompany(activeTicker)
 
-  const fundTab = getFundTab(activeSection, financialsTab, shortTab)
+  const fundTab = getFundTab(activeTab, financialsTab)
   const { data: fundData, loading: fundLoading, error: fundError } = useFundamentals(
-    activeTicker && activeSection !== 'overview' ? activeTicker : '',
+    activeTicker && activeTab === 'financials' ? activeTicker : '',
     fundTab,
   )
 
@@ -57,7 +53,7 @@ export function ResearchTab() {
     const trimmed = input.trim().toUpperCase()
     if (!trimmed) return
     setActiveTicker(trimmed)
-    setActiveSection('overview')
+    setActiveTab('overview')
   }
 
   return (
@@ -72,76 +68,152 @@ export function ResearchTab() {
         loading={priceLoading}
       />
 
-      {!activeTicker ? (
-        <div className="glass-card rounded-xl p-8 md:p-12 flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-accent-light text-lg animate-pulse-slow">
-            $
+      {!activeTicker && (
+        <div className="flex flex-col items-center justify-center py-28 text-center animate-fade-in">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-5">
+            <svg className="w-5 h-5 text-white/25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-          <p className="text-white/30 text-sm">Enter a ticker to begin research</p>
+          <p className="text-sm text-white/40 font-medium">Enter a ticker to begin research</p>
+          <p className="text-xs text-white/20 mt-1.5">
+            Overview, financials, news, corporate actions, and filings
+          </p>
         </div>
-      ) : null}
+      )}
 
-      {activeTicker ? (
-        <div className="glass-card rounded-xl px-3 py-2 sm:px-4 overflow-x-auto scrollbar-hide">
-          <div className="flex rounded-lg bg-white/[0.04] p-0.5">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveSection(s.id)}
-                className={cn(
-                  'px-4 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all',
-                  activeSection === s.id
-                    ? 'bg-accent text-white shadow-sm shadow-accent/25'
-                    : 'text-white/40 hover:text-white/70',
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      {activeTicker && (
+        <>
+          <nav
+            className="glass-card rounded-xl px-3 py-2 sm:px-4 overflow-x-auto scrollbar-hide"
+            role="tablist"
+            aria-label="Research tabs"
+          >
+            <div className="flex rounded-lg bg-white/[0.04] p-0.5">
+              {TABS.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`panel-${tab.id}`}
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowRight') {
+                      e.preventDefault()
+                      const nextIndex = (index + 1) % TABS.length
+                      setActiveTab(TABS[nextIndex].id)
+                    } else if (e.key === 'ArrowLeft') {
+                      e.preventDefault()
+                      const prevIndex = (index - 1 + TABS.length) % TABS.length
+                      setActiveTab(TABS[prevIndex].id)
+                    }
+                  }}
+                  className={cn(
+                    'px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-all duration-200',
+                    'min-h-[36px] flex items-center justify-center',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50',
+                    activeTab === tab.id
+                      ? 'bg-accent text-white shadow-sm shadow-accent/25'
+                      : 'text-white/40 hover:text-white/70 hover:bg-white/[0.03]',
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </nav>
 
-      {activeTicker && activeSection === 'overview' ? (
-        <div key="overview" className="animate-slide-fade">
-          <OverviewSection
-            ticker={activeTicker}
-            chartBars={chartData?.bars ?? []}
-            chartLoading={chartLoading}
-            chartLatestClose={chartData?.latest_close}
-            chartTimeframe={chartTimeframe}
-            onChartTimeframeChange={setChartTimeframe}
-            company={companyData}
-            companyLoading={companyLoading}
-          />
-        </div>
-      ) : null}
+          {activeTab === 'overview' && (
+            <div
+              key="overview"
+              id="panel-overview"
+              role="tabpanel"
+              aria-labelledby="tab-overview"
+              className="animate-slide-fade"
+            >
+              <OverviewSection
+                ticker={activeTicker}
+                chartBars={chartData?.bars ?? []}
+                chartLoading={chartLoading}
+                chartLatestClose={chartData?.latest_close}
+                chartTimeframe={chartTimeframe}
+                onChartTimeframeChange={setChartTimeframe}
+                company={companyData}
+                companyLoading={companyLoading}
+              />
+            </div>
+          )}
 
-      {activeTicker && activeSection === 'financials' ? (
-        <FinancialsSection
-          financialsTab={financialsTab}
-          onFinancialsTabChange={setFinancialsTab}
-          timeframe={timeframe}
-          onTimeframeChange={setTimeframe}
-          data={fundData}
-          loading={fundLoading}
-          error={fundError}
-        />
-      ) : null}
+          {activeTab === 'news' && (
+            <div
+              key="news"
+              id="panel-news"
+              role="tabpanel"
+              aria-labelledby="tab-news"
+              className="animate-slide-fade"
+            >
+              <NewsTab ticker={activeTicker} />
+            </div>
+          )}
 
-      {activeTicker && activeSection === 'short' ? (
-        <ShortInterestSection
-          shortTab={shortTab}
-          onShortTabChange={setShortTab}
-          data={fundData}
-          loading={fundLoading}
-          error={fundError}
-        />
-      ) : null}
+          {activeTab === 'financials' && (
+            <div
+              key="financials"
+              id="panel-financials"
+              role="tabpanel"
+              aria-labelledby="tab-financials"
+              className="animate-slide-fade"
+            >
+              <FinancialsSection
+                financialsTab={financialsTab}
+                onFinancialsTabChange={setFinancialsTab}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
+                data={fundData}
+                loading={fundLoading}
+                error={fundError}
+              />
+            </div>
+          )}
 
-      {activeTicker && activeSection === 'float' ? (
-        <FloatSection data={fundData} loading={fundLoading} error={fundError} />
-      ) : null}
+          {activeTab === 'actions' && (
+            <div
+              key="actions"
+              id="panel-actions"
+              role="tabpanel"
+              aria-labelledby="tab-actions"
+              className="animate-slide-fade"
+            >
+              <ActionsTab ticker={activeTicker} />
+            </div>
+          )}
+
+          {activeTab === 'ownership' && (
+            <div
+              key="ownership"
+              id="panel-ownership"
+              role="tabpanel"
+              aria-labelledby="tab-ownership"
+              className="animate-slide-fade"
+            >
+              <OwnershipTab ticker={activeTicker} />
+            </div>
+          )}
+
+          {activeTab === 'filings' && (
+            <div
+              key="filings"
+              id="panel-filings"
+              role="tabpanel"
+              aria-labelledby="tab-filings"
+              className="animate-slide-fade"
+            >
+              <FilingsTab ticker={activeTicker} />
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
