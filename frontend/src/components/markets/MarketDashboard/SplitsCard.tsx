@@ -65,7 +65,7 @@ export function SplitsCard({ className }: SplitsCardProps) {
             <p className="text-[10px] text-dash-muted/60 mt-1">Check back later</p>
           </div>
         ) : (
-          displaySplits.map((split, index) => {
+          displaySplits.map((split) => {
             const isReverse = split.is_reverse
             const ratio = isReverse
               ? `RS ${split.split_from}:${split.split_to}`

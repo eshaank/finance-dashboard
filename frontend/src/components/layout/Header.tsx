@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Clock, LogOut, User, ArrowLeft, Plus, Search, X, Terminal } from 'lucide-react'
+import { Clock, LogOut, User, Plus, X, Terminal } from 'lucide-react'
 import { useClock } from '../../hooks/useClock'
 import { useAuth } from '../../contexts/AuthContext'
 import { HeaderNavTabs } from './NavTabs'

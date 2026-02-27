@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import type { ChartTimeframe, CompanyDetails, OHLCBar, ChartEvent } from '../../types'
 import type { ChartType } from './PriceChart'
-import { cn } from '../../lib/utils'
 import { PriceChart } from './PriceChart'
 import { useDividendHistory } from '../../hooks/useDividendHistory'
 import { useSplitHistory } from '../../hooks/useSplitHistory'
@@ -27,8 +26,6 @@ export function OverviewSection({
   chartLatestClose,
   chartTimeframe,
   onChartTimeframeChange,
-  company,
-  companyLoading,
 }: Props) {
   const chartType: ChartType = 'line'
   const bars = chartBars

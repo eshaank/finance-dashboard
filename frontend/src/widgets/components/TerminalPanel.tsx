@@ -5,7 +5,7 @@ import { getWidgetDefinition } from '../registry'
 import { LINK_CHANNEL_COLORS } from '../types'
 import type { WidgetInstance, WidgetProps, LinkChannel } from '../types'
 
-const CHANNEL_OPTIONS: LinkChannel[] = [1, 2, 3, 4, 5, 6, 7, 8]
+const CHANNEL_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const
 
 interface TerminalPanelProps {
   widget: WidgetInstance
