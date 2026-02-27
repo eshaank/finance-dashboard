@@ -19,7 +19,6 @@ export function DashboardHome({ onAddWidgetClick, onCommandPaletteOpen, onRegist
     updateWidgetConfig,
     updateWidgetPosition,
     resetToDefault,
-    focusedWidgetId,
     setFocusedWidgetId,
     broadcastTicker,
     setTickerForFocused,

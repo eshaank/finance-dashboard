@@ -108,10 +108,6 @@ export function PriceChart({
     )
   }
 
-  const closes = bars.map((b) => b.close)
-  const minClose = Math.min(...closes)
-  const maxClose = Math.max(...closes)
-
   const allValues = bars.flatMap((b) => [b.open, b.high, b.low, b.close])
   const minVal = Math.min(...allValues)
   const maxVal = Math.max(...allValues)

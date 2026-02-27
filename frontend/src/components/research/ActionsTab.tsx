@@ -145,7 +145,7 @@ export function ActionsTab({ ticker }: ActionsTabProps) {
                     </td>
                     <td className="py-2.5 px-3 whitespace-nowrap">
                       <Badge variant="yellow" className="text-[9px] px-1.5 py-0.5">
-                        {getFrequencyLabel(dividend.frequency)}
+                        {getFrequencyLabel(dividend.frequency ?? '')}
                       </Badge>
                     </td>
                   </tr>

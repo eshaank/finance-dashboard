@@ -28,6 +28,8 @@ export const WidgetShell = memo(function WidgetShell({
     onConfigChange: (config) => onConfigChange(widget.id, config),
     onRemove: () => onRemove(widget.id),
     isEditing,
+    isFocused: false,
+    linkChannel: null,
   }
 
   return (

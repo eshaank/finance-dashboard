@@ -25,7 +25,7 @@ export function TerminalWorkspace({
   onBroadcastTicker,
   onSetLinkChannel,
 }: TerminalWorkspaceProps) {
-  const [zCounter, setZCounter] = useState(10)
+  const [, setZCounter] = useState(10)
   const [zMap, setZMap] = useState<Record<string, number>>({})
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({})
