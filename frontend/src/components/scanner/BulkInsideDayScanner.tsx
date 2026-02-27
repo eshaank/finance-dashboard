@@ -159,7 +159,7 @@ export function BulkInsideDayScanner({ selectedTicker, onTickerSelect }: Props) 
             </div>
 
             <FilterInput label="Min Price" value={minPrice} onChange={setMinPrice} placeholder="10" prefix="$" />
-            <FilterInput label="Avg Volume" value={minAvgVolume} onChange={setMinAvgVolume} placeholder="500K" />
+            <FilterInput label="Min Volume" value={minAvgVolume} onChange={setMinAvgVolume} placeholder="500K" />
 
             <div className="flex items-end gap-2 ml-auto">
               <button

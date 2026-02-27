@@ -21,11 +21,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #111114;
+  background: #111111;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a32;
+  background: #2a2a2a;
   border-radius: 4px;
 }
 
@@ -35,11 +35,9 @@
 
 /* Glassmorphism card */
 .glass-card {
-  background: linear-gradient(135deg, rgba(17, 17, 20, 0.9) 0%, rgba(24, 24, 28, 0.8) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  background: rgba(17, 17, 17, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
 }
 
 .glass-card-hover:hover {
@@ -94,4 +92,92 @@
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Terminal workspace — rigid viewport fill below slim header */
+.terminal-workspace {
+  background: #0a0a0a;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  height: calc(100vh - 36px);
+  overflow: hidden;
+}
+
+.terminal-panel {
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Widget resize handle */
+.widget-resizable {
+  resize: both;
+  overflow: hidden;
+}
+
+.widget-resizable::-webkit-resizer {
+  display: none;
+}
+
+/* Subtle resize grip in bottom-right corner */
+.widget-resizable::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  background:
+    linear-gradient(135deg,
+      transparent 0%, transparent 50%,
+      rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.08) 60%,
+      transparent 60%, transparent 70%,
+      rgba(255, 255, 255, 0.08) 70%, rgba(255, 255, 255, 0.08) 80%,
+      transparent 80%);
+  z-index: 10;
+}
+
+.terminal-panel-header {
+  border-bottom: 1px solid #2a2a2a;
+  cursor: grab;
+  user-select: none;
+}
+
+.terminal-panel-header:active {
+  cursor: grabbing;
+}
+
+.terminal-panel.is-focused {
+  border-color: rgba(26, 143, 255, 0.5);
+}
+
+/* Row flash animations for quote monitor */
+@keyframes flashGreen {
+  0% { background-color: rgba(0, 204, 102, 0.25); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flashRed {
+  0% { background-color: rgba(255, 68, 68, 0.25); }
+  100% { background-color: transparent; }
+}
+
+.flash-green {
+  animation: flashGreen 150ms ease-out;
+}
+
+.flash-red {
+  animation: flashRed 150ms ease-out;
+}
+
+/* Ticker marquee — continuous scroll */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 45s linear infinite;
 }

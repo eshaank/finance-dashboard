@@ -1,0 +1,2 @@
+import './QuoteMonitorWidget'
+import './PriceChartWidget'

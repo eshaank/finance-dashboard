@@ -1,7 +1,7 @@
 import { ScannerTab } from '../scanner/ScannerTab'
 import { ResearchTab } from '../research/ResearchTab'
-import { GlobalEconomicsTab } from '../global-economics/GlobalEconomicsTab'
 import { USEconomicsTab } from '../us-economics/USEconomicsTab'
+import { MarketsTab } from '../markets/MarketsTab'
 import type { TabId } from './NavTabs'
 
 interface DashboardLayoutProps {
@@ -11,16 +11,10 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
   return (
     <main className="p-3 md:p-6 animate-fade-in">
-      {activeTab === 'scanner' && (
-        <ScannerTab />
-      )}
-      {activeTab === 'research' && (
-        <ResearchTab />
-      )}
+      {activeTab === 'scanner' && <ScannerTab />}
+      {activeTab === 'research' && <ResearchTab />}
       {activeTab === 'us-economics' && <USEconomicsTab />}
-      {activeTab === 'global-economics' && (
-        <GlobalEconomicsTab />
-      )}
+      {activeTab === 'markets' && <MarketsTab />}
     </main>
   )
 }

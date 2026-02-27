@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Globe, RefreshCw, Clock, LogOut, User } from 'lucide-react'
+import { Clock, LogOut, User, ArrowLeft, Plus, Search, X, Terminal } from 'lucide-react'
 import { useClock } from '../../hooks/useClock'
 import { useAuth } from '../../contexts/AuthContext'
 import { HeaderNavTabs } from './NavTabs'
@@ -33,9 +33,15 @@ interface HeaderProps {
   activeView: ViewId
   onTabChange: (tab: TabId) => void
   onGoHome: () => void
+  isTerminalMode?: boolean
+  onExitTerminal?: () => void
+  onAddWidgetClick?: () => void
+  onCommandPaletteOpen?: () => void
+  onAddWidget?: (type: 'quote-monitor' | 'price-chart') => void
+  onOpenTerminal?: () => void
 }
 
-export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
+export function Header({ activeView, onTabChange, onGoHome, isTerminalMode, onExitTerminal, onAddWidgetClick, onCommandPaletteOpen, onAddWidget, onOpenTerminal }: HeaderProps) {
   const now = useClock()
   const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -71,7 +77,6 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
     timeZone: tzId,
   })
 
@@ -79,10 +84,61 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
     ?? user?.email?.split('@')[0]
     ?? 'User'
 
+  if (isTerminalMode) {
+    return (
+      <header className="h-8 bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-50 flex items-center px-3 gap-3">
+        {/* Left: prompt + hint */}
+        <button
+          onClick={onCommandPaletteOpen}
+          className="flex-1 flex items-center gap-2 min-w-0 cursor-pointer group"
+        >
+          <span className="text-[#9a2240] text-sm font-mono font-bold shrink-0">&gt;</span>
+          <span className="text-[12px] font-mono text-white/25 group-hover:text-white/40 transition-colors truncate">
+            Press <span className="text-white/40 group-hover:text-white/55">/</span> to open command palette
+          </span>
+        </button>
+
+        {/* Right: chips + settings */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onAddWidget?.('quote-monitor')}
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
+            title="Add Quote Monitor"
+          >
+            QM
+          </button>
+          <button
+            onClick={() => onAddWidget?.('price-chart')}
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
+            title="Add Price Chart"
+          >
+            G
+          </button>
+          <button
+            onClick={onAddWidgetClick}
+            className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase leading-none bg-[#9a2240]/10 text-[#9a2240] border border-[#9a2240]/40 rounded-[3px] hover:bg-[#9a2240]/25 transition-colors cursor-pointer"
+            title="Add widget"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+          <button
+            onClick={onExitTerminal}
+            className="ml-1 p-0.5 text-white/20 hover:text-white/50 transition-colors cursor-pointer"
+            title="Exit terminal"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <header className="border-b border-white/5 bg-dash-surface/50 backdrop-blur-xl sticky top-0 z-50">
-      <div className="px-3 py-3 md:px-6 md:py-4">
+      <div className="px-4 py-2 md:px-6">
         <div className="flex items-center justify-between gap-4">
+
+          {/* Brand */}
           <button
             type="button"
             onClick={(e) => {
@@ -93,39 +149,41 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }
             }}
-            className="relative z-10 flex shrink-0 items-center gap-4 rounded-lg py-1 pr-1 transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-dash-surface cursor-pointer"
+            className="flex shrink-0 items-center gap-2.5 rounded-md py-1 pr-2 transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-dash-surface cursor-pointer"
             aria-label="Go to dashboard home"
           >
-            <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center accent-glow">
-              <Globe className="w-4 h-4 text-white" />
-            </div>
-            <div className="text-left hidden sm:block">
-              <h1 className="font-display text-lg font-semibold tracking-tight text-dash-text">
-                Global Economic Dashboard
-              </h1>
-              <p className="text-xs text-white/40">Market Intelligence Platform</p>
-            </div>
+            <img src="/logo.svg" alt="3Epsilon" className="w-7 h-7 rounded-md" />
+            <span className="hidden sm:block text-sm font-medium tracking-wide text-dash-text/90">
+              3Epsilon
+            </span>
           </button>
 
+          {/* Nav */}
           <HeaderNavTabs
-            activeTab={activeView === 'home' ? null : activeView}
+            activeTab={activeView === 'home' || activeView === 'terminal' ? null : activeView}
             onTabChange={onTabChange}
           />
 
-          <div className="flex shrink-0 items-center gap-3 md:gap-5">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60 relative" ref={tzRef}>
-              <Clock className="w-3.5 h-3.5 text-accent" />
-              <span className="font-mono text-sm text-dash-text/80">{timeStr}</span>
-              <button
-                type="button"
-                onClick={() => setTzMenuOpen((o) => !o)}
-                className="text-xs text-white/30 hover:text-white/60 cursor-pointer focus:outline-none focus:ring-0"
-                aria-label="Change timezone"
-                aria-expanded={tzMenuOpen}
-                aria-haspopup="listbox"
-              >
-                {tz}
-              </button>
+          {/* Right controls */}
+          <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            <button
+              onClick={onOpenTerminal}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                activeView === 'terminal'
+                  ? 'bg-accent/15 text-accent'
+                  : 'bg-dash-surface-2/60 text-white/50 hover:text-white/80 hover:bg-dash-surface-2/80'
+              }`}
+              title="Open Terminal"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span className="hidden sm:block text-xs font-medium">Terminal</span>
+            </button>
+
+            {/* Clock + timezone */}
+            <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-dash-surface-2/60 relative" ref={tzRef}>
+              <Clock className="w-3 h-3 text-accent/70 cursor-pointer" onClick={() => setTzMenuOpen((o) => !o)} />
+              <span className="font-mono text-xs text-dash-text/70">{timeStr}</span>
+              <span className="text-xs text-white/25">{tz}</span>
               {tzMenuOpen && (
                 <div
                   className="absolute right-0 top-full mt-1 py-1 bg-dash-surface border border-white/10 rounded-lg shadow-xl z-50 min-w-[80px]"
@@ -153,20 +211,14 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
                   <div className="flex gap-1 px-2 pb-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        setUse12h(false)
-                        localStorage.setItem(HEADER_HOUR12_KEY, 'false')
-                      }}
+                      onClick={() => { setUse12h(false); localStorage.setItem(HEADER_HOUR12_KEY, 'false') }}
                       className={`flex-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${!use12h ? 'bg-accent/20 text-accent' : 'text-white/70 hover:bg-white/5'}`}
                     >
                       24h
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setUse12h(true)
-                        localStorage.setItem(HEADER_HOUR12_KEY, 'true')
-                      }}
+                      onClick={() => { setUse12h(true); localStorage.setItem(HEADER_HOUR12_KEY, 'true') }}
                       className={`flex-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${use12h ? 'bg-accent/20 text-accent' : 'text-white/70 hover:bg-white/5'}`}
                     >
                       12h
@@ -176,32 +228,21 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
               )}
             </div>
 
-            <div className="hidden md:flex items-center gap-2 text-white/30">
-              <RefreshCw className="w-3 h-3" />
-              <span className="text-xs">{dateStr}</span>
-            </div>
-
-            <div className="hidden md:flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-dash-green pulse-dot" />
-              <span className="text-xs text-white/50">Live</span>
-            </div>
+            {/* Date */}
+            <span className="hidden md:block text-xs text-white/30">{dateStr}</span>
 
             {/* User menu */}
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dash-surface-2/60 hover:bg-dash-surface-2/80 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-dash-surface-2/60 hover:bg-dash-surface-2/80 transition-colors cursor-pointer"
               >
                 {user?.user_metadata?.avatar_url ? (
-                  <img
-                    src={user.user_metadata.avatar_url}
-                    alt=""
-                    className="w-5 h-5 rounded-full"
-                  />
+                  <img src={user.user_metadata.avatar_url} alt="" className="w-5 h-5 rounded-full" />
                 ) : (
                   <User className="w-3.5 h-3.5 text-white/50" />
                 )}
-                <span className="text-xs text-white/60 max-w-[120px] truncate">
+                <span className="hidden sm:block text-xs text-white/60 max-w-[100px] truncate">
                   {displayName}
                 </span>
               </button>
@@ -209,7 +250,13 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
               {isMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-56 bg-dash-surface border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
                   <div className="px-4 py-3 border-b border-white/5">
-                    <p className="text-xs text-white/40">Signed in as</p>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-xs text-white/40">Signed in as</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-dash-green pulse-dot" />
+                        <span className="text-xs text-white/40">Live</span>
+                      </div>
+                    </div>
                     <p className="text-sm text-dash-text truncate">{user?.email}</p>
                   </div>
                   <button
@@ -223,6 +270,7 @@ export function Header({ activeView, onTabChange, onGoHome }: HeaderProps) {
               )}
             </div>
           </div>
+
         </div>
       </div>
     </header>

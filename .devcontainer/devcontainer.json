@@ -9,6 +9,9 @@
     "8000": { "label": "Uvicorn", "onAutoForward": "notify" }
   },
   "postCreateCommand": "just setup",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
+  ],
   "customizations": {
     "vscode": {
       "settings": {

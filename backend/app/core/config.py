@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     fred_base_url: str = "https://api.stlouisfed.org/fred"
     supabase_url: str = ""
     rate_limit: str = "60/minute"
+    # SEC API (optional - falls back to SEC EDGAR RSS if not provided)
+    sec_api_key: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

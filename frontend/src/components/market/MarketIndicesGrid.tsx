@@ -6,9 +6,9 @@ export function MarketIndicesGrid() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-1 xl:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-xl glass-card" />
+          <div key={i} className="h-14 animate-pulse border border-dash-border bg-dash-surface" />
         ))}
       </div>
     )
@@ -16,14 +16,14 @@ export function MarketIndicesGrid() {
 
   if (error) {
     return (
-      <div className="glass-card rounded-xl p-4 text-sm text-dash-red">
+      <div className="border border-dash-border bg-dash-surface p-4 text-sm text-dash-red">
         Failed to load market indices: {error}
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-1 xl:grid-cols-4">
       {data.map((index) => (
         <MarketIndexCard key={index.id} index={index} />
       ))}

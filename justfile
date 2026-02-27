@@ -57,3 +57,13 @@ clean:
     rm -rf frontend/node_modules frontend/dist
     rm -rf backend/.venv
     find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# Open a bash shell inside the running devcontainer (run from host)
+shell:
+    #!/usr/bin/env bash
+    cid=$(docker ps | awk '/vsc-finance-dashboard/{print $1}' | head -1)
+    if [ -z "$cid" ]; then
+      echo "No running devcontainer found. Run: docker ps" >&2
+      exit 1
+    fi
+    docker exec -it -w /workspaces/finance-dashboard "$cid" bash

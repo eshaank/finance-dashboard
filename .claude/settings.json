@@ -56,15 +56,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/verify-no-secrets.sh"
+            "command": "bash /Users/eshaan/projects/finance-dashboard/.claude/hooks/verify-no-secrets.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/check-rulecatch.sh"
+            "command": "bash /Users/eshaan/projects/finance-dashboard/.claude/hooks/check-rulecatch.sh"
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/check-env-sync.sh"
+            "command": "bash /Users/eshaan/projects/finance-dashboard/.claude/hooks/check-env-sync.sh"
           }
         ]
       }
