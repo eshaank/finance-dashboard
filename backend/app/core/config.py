@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     rate_limit: str = "60/minute"
     # SEC API (optional - falls back to SEC EDGAR RSS if not provided)
     sec_api_key: str = ""
+    # IMF Data (optional - skeleton for IMF Data Portal / API)
+    imf_api_key: str = ""
+    imf_base_url: str = "https://api.imf.org"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

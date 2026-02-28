@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 
-export type TabId = 'us-economics' | 'markets' | 'research' | 'scanner'
+export type TabId = 'us-economics' | 'markets' | 'polymarket' | 'research' | 'scanner'
 
 /** Current view: dashboard home, terminal workspace, or a nav tab. */
 export type ViewId = 'home' | 'terminal' | TabId
@@ -35,7 +35,14 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'global-economics', label: 'Global Economics', soon: true },
     ],
   },
-  { type: 'direct', label: 'Markets', tabId: 'markets' },
+  {
+    type: 'dropdown',
+    label: 'Markets',
+    items: [
+      { id: 'markets', label: 'US Markets' },
+      { id: 'polymarket', label: 'Polymarket' },
+    ],
+  },
   { type: 'direct', label: 'Research', tabId: 'research' },
   {
     type: 'dropdown',

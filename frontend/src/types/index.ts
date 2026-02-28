@@ -298,5 +298,53 @@ export interface ChartEvent {
   description: string
 }
 
+// ── Polymarket ─────────────────────────────────────────────────────────────────
+
+export interface PolymarketMarket {
+  id: string
+  question: string
+  outcomes: string[]
+  outcome_prices: number[]
+  volume: number
+  liquidity: number
+  active: boolean
+  closed: boolean
+  end_date: string | null
+}
+
+export interface PolymarketEvent {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  category: string | null
+  image: string | null
+  volume: number
+  volume_24hr: number
+  liquidity: number
+  open_interest: number
+  markets: PolymarketMarket[]
+}
+
+export interface CategoryBreakdown {
+  name: string
+  count: number
+  volume_24hr: number
+}
+
+export interface PolymarketStats {
+  active_markets: number
+  total_volume_24hr: number
+  total_open_interest: number
+  total_liquidity: number
+  categories: CategoryBreakdown[]
+}
+
+export interface PolymarketEventsResponse {
+  events: PolymarketEvent[]
+  trending: PolymarketEvent[]
+  total: number
+}
+
 export type ChartType = 'line' | 'candle'
 export type CompanyTab = 'overview' | 'news' | 'financials' | 'actions' | 'ownership' | 'filings'

@@ -6,10 +6,20 @@
       "sourceType": "github",
       "computedHash": "fa51843cda87fc738f819c937cc697691255684d27d598dbc64a3a121e480064"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
     "massive-api": {
       "source": "bruce-shi/massive-skill",
       "sourceType": "github",
       "computedHash": "e92247087a058de2428e49e74c96c77ff090a7df3735922cccce894b5f5b1083"
+    },
+    "polymarket-api": {
+      "source": "agentmc15/polymarket-trader",
+      "sourceType": "github",
+      "computedHash": "022fdd5e3e1b283110f08f8b3234f4f7cf221e38f3cf174c54ec962a0e3bed67"
     },
     "tailwind-design-system": {
       "source": "wshobson/agents",
