@@ -1,5 +1,7 @@
 # Finance Dashboard
 
+[This is pretty much all written by AI]
+
 A Bloomberg terminal-inspired finance dashboard built with React 19 + Vite and FastAPI. Real-time market data, company research, financial statements, and technical pattern scanners — all behind invite-only auth.
 
 ## Architecture
