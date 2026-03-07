@@ -31,5 +31,6 @@ link harness/rules    .rules
 link harness/claude/CLAUDE.md  CLAUDE.md
 link harness/claude/AGENTS.md  AGENTS.md
 link harness/opencode/opencode.json opencode.json
+link harness/claude/mcp.json .mcp.json
 
 echo "Done."

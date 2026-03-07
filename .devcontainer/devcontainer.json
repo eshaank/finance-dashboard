@@ -8,14 +8,22 @@
     "5173": { "label": "Vite", "onAutoForward": "notify" },
     "8000": { "label": "Uvicorn", "onAutoForward": "notify" }
   },
-  "postCreateCommand": "just setup",
+  "postCreateCommand": "just setup && ./setup-harness.sh",
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind,consistency=cached"
   ],
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "./backend/.venv/bin/python"
+        "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+        "mcp": {
+          "servers": {
+            "together-ai-docs": {
+              "type": "http",
+              "url": "https://docs.together.ai/mcp"
+            }
+          }
+        }
       },
       "extensions": [
         "ms-python.python",

@@ -32,6 +32,7 @@ flowchart LR
     L_claude_md["CLAUDE.md"]
     L_agents["AGENTS.md"]
     L_opencode_json["opencode.json"]
+    L_mcp[".mcp.json"]
   end
 
   subgraph harness["harness/"]
@@ -42,6 +43,7 @@ flowchart LR
     H_claude_md["claude/CLAUDE.md"]
     H_agents["claude/AGENTS.md"]
     H_opencode_json["opencode/opencode.json"]
+    H_mcp["claude/mcp.json"]
   end
 
   L_claude --> H_claude
@@ -51,6 +53,7 @@ flowchart LR
   L_claude_md --> H_claude_md
   L_agents --> H_agents
   L_opencode_json --> H_opencode_json
+  L_mcp --> H_mcp
 ```
 
 | At repo root (symlink) | Points to (in harness/) |
@@ -62,6 +65,7 @@ flowchart LR
 | `CLAUDE.md`           | `harness/claude/CLAUDE.md` |
 | `AGENTS.md`           | `harness/claude/AGENTS.md` |
 | `opencode.json`       | `harness/opencode/opencode.json` |
+| `.mcp.json`           | `harness/claude/mcp.json`        |
 
 ---
 

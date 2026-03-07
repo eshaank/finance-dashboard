@@ -8,6 +8,11 @@
     }
   },
   "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+  "mcpServers": {
+    "together-ai-docs": {
+      "url": "https://docs.together.ai/mcp"
+    }
+  },
   "recommendations": [
     "ms-python.python",
     "charliermarsh.ruff",

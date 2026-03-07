@@ -37,6 +37,7 @@ Thumbs.db
 /CLAUDE.md
 /AGENTS.md
 /opencode.json
+/.mcp.json
 
 # Harness ephemeral data
 harness/cursor/plans/

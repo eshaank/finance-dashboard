@@ -4,7 +4,8 @@
       "WebSearch",
       "WebFetch(domain:docs.perigon.io)",
       "WebFetch(domain:www.perigon.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.together.ai)"
     ]
   }
 }
