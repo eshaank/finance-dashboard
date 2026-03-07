@@ -1,4 +1,4 @@
-from app.domains.market.schemas import MarketIndex
+from app.domains.pricing.schemas import MarketIndex
 
 MARKET_INDICES: list[MarketIndex] = [
     MarketIndex(

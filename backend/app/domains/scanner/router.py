@@ -3,8 +3,8 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.core.security import get_current_user
-from app.domains.market.client import fetch_daily_candles
-from app.domains.market.service import bars_to_ohlc
+from app.domains.pricing.client import fetch_daily_candles
+from app.domains.pricing.service import bars_to_ohlc
 from app.domains.scanner.client import fetch_grouped_multi_day, fetch_ticker_details_batch
 from app.domains.scanner.constituents import get_constituents
 from app.domains.scanner.schemas import BulkInsideDayItem, BulkInsideDayResult, InsideDayResult

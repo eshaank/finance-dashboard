@@ -1,4 +1,4 @@
-from app.domains.market.client import DailyBar
+from app.domains.pricing.client import DailyBar
 
 
 def count_inside_days(bars: list[DailyBar]) -> tuple[int, list[str]]:

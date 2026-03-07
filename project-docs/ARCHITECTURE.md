@@ -18,7 +18,7 @@ graph TB
     subgraph Backend["FastAPI Backend :8000"]
         MW["Middleware<br/>Rate Limit | Logging | Request ID"]
         Auth["JWT Verification<br/>(ES256 via JWKS)"]
-        Domains["Domain Routers<br/>market | research | fundamentals<br/>scanner | economics"]
+        Domains["Domain Routers<br/>pricing | company | financials | short_interest<br/>corporate_actions | scanner | economics | news"]
         HTTP["Async httpx Client<br/>tenacity retry (3x) | TTL cache"]
     end
 
@@ -66,34 +66,39 @@ graph LR
     end
 
     subgraph domains["domains/"]
-        MKT["market<br/>indices, price charts"]
-        RES["research<br/>company details"]
-        FUN["fundamentals<br/>financials, ratios, shorts"]
+        PRC["pricing<br/>charts, quotes"]
+        CMP["company<br/>profile"]
+        FIN["financials<br/>statements, ratios"]
+        SI["short_interest<br/>short data, float"]
+        CA["corporate_actions<br/>dividends, splits, IPOs"]
+        NEW["news<br/>company + market"]
         SCN["scanner<br/>inside days"]
         ECO["economics<br/>indicators, events"]
         FRD["fred<br/>(internal: series + releases)"]
         FIL["filings (placeholder)"]
-        NEW["news (placeholder)"]
-        SCR["screener (placeholder)"]
     end
 
-    AGG --> MKT
-    AGG --> RES
-    AGG --> FUN
+    AGG --> PRC
+    AGG --> CMP
+    AGG --> FIN
+    AGG --> SI
+    AGG --> CA
+    AGG --> NEW
     AGG --> SCN
     AGG --> ECO
 
-    MKT --> HC
-    RES --> HC
-    FUN --> HC
-    SCN --> MKT
+    PRC --> HC
+    CMP --> HC
+    FIN --> HC
+    SI --> HC
+    CA --> HC
+    NEW --> HC
+    SCN --> PRC
     ECO --> FRD
     ECO --> HC
     FRD --> HC
 
     style FIL fill:#333,stroke:#555,color:#888
-    style NEW fill:#333,stroke:#555,color:#888
-    style SCR fill:#333,stroke:#555,color:#888
 ```
 
 ### Directory Layout
@@ -111,16 +116,18 @@ backend/app/
 │   ├── http_client.py       # Async httpx + tenacity retry
 │   └── schemas.py           # ApiResponse[T], PaginatedResponse[T]
 ├── domains/
-│   ├── market/              # router, schemas, service, client
-│   ├── research/            # router, schemas, service, client
-│   ├── fundamentals/        # router, schemas, service, client
-│   ├── scanner/             # router, schemas, service
+│   ├── company/             # router, schemas, service, client
+│   ├── corporate_actions/   # router, schemas, service, client
+│   ├── financials/          # router, schemas, service, client
+│   ├── pricing/             # router, schemas, service, client
+│   ├── short_interest/      # router, schemas, service, client
+│   ├── news/                # router, schemas, service, client
+│   ├── scanner/             # router, schemas, service, client
 │   ├── economics/           # router, schemas, service, client
 │   ├── fred/                # client, service (internal — consumed by economics)
-│   ├── imf/                 # IMF data retrieval (skeleton: router, schemas, service, client)
-│   ├── filings/             # placeholder
-│   ├── news/                # placeholder
-│   └── screener/            # placeholder
+│   ├── filings/             # router, schemas, service, client
+│   ├── polymarket/          # router, schemas, service, client
+│   └── imf/                 # router, schemas, service, client
 ├── data/mock_data.py
 └── main.py
 ```
@@ -157,7 +164,7 @@ sequenceDiagram
         SWR->>FE: Fetch
         FE->>MW: GET /api/v1/price-chart + Bearer JWT
         MW->>MW: Rate limit check, assign X-Request-ID
-        MW->>R: market/router
+        MW->>R: pricing/router
         R->>S: validate_timeframe("6M")
         R->>C: fetch_candles(client, "AAPL", "6M")
         C->>Cache: Check TTL cache
@@ -295,7 +302,7 @@ SWR provides: request deduplication, in-memory caching, stale-while-revalidate, 
 | Does | Does NOT |
 |------|----------|
 | Proxy Polygon.io for price/company data | Store data in a database |
-| Proxy Massive API for fundamentals/short data | Handle user sessions (Supabase does this) |
+| Proxy Massive API for financials/short interest data | Handle user sessions (Supabase does this) |
 | Detect inside-day patterns (algorithm in service layer) | Handle WebSocket connections |
 | Cache API responses (TTLCache, 1-5min) | Push notifications |
 | Retry failed external requests (tenacity, 3 attempts) | |
@@ -310,20 +317,29 @@ All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 
 | Method | Path | Domain | External API | Purpose |
 |--------|------|--------|--------------|---------|
-| GET | `/market-indices` | market | Mock data | SPY, QQQ, IWM, etc. |
-| GET | `/price-chart?ticker=&timeframe=` | market | Polygon (candles) | OHLC chart data (7 timeframes) |
-| GET | `/company/details?ticker=` | research | Polygon (reference) | Company info + logo |
-| GET | `/fundamentals/balance-sheet?ticker=&page=&per_page=` | fundamentals | Massive | Balance sheets |
-| GET | `/fundamentals/cash-flow?ticker=&page=&per_page=` | fundamentals | Massive | Cash flow statements |
-| GET | `/fundamentals/income-statement?ticker=&page=&per_page=` | fundamentals | Massive | Income statements |
-| GET | `/fundamentals/ratios?ticker=&page=&per_page=` | fundamentals | Massive | Financial ratios |
-| GET | `/fundamentals/short-interest?ticker=&page=&per_page=` | fundamentals | Massive | Short interest data |
-| GET | `/fundamentals/short-volume?ticker=&page=&per_page=` | fundamentals | Massive | Short volume data |
-| GET | `/fundamentals/float?ticker=` | fundamentals | Massive | Free float data |
-| GET | `/inside-days?ticker=` | scanner | Polygon (daily bars) | Inside-day pattern detection |
-| GET | `/economic-data` | economics | FRED + Massive (Fed) | Economic indicators |
+| GET | `/pricing/market-indices` | pricing | Mock data | SPY, QQQ, IWM, etc. |
+| GET | `/pricing/price-chart?ticker=&timeframe=` | pricing | Polygon (candles) | OHLC chart data (7 timeframes) |
+| GET | `/pricing/quotes?tickers=` | pricing | Polygon (snapshots) | Real-time quotes |
+| GET | `/company/details?ticker=` | company | Polygon (reference) | Company info + logo |
+| GET | `/financials/balance-sheet?ticker=` | financials | Massive | Balance sheets |
+| GET | `/financials/cash-flow?ticker=` | financials | Massive | Cash flow statements |
+| GET | `/financials/income-statement?ticker=` | financials | Massive | Income statements |
+| GET | `/financials/ratios?ticker=` | financials | Massive | Financial ratios |
+| GET | `/short-interest/short-interest?ticker=` | short_interest | Massive | Short interest data |
+| GET | `/short-interest/short-volume?ticker=` | short_interest | Massive | Short volume data |
+| GET | `/short-interest/float?ticker=` | short_interest | Massive | Free float data |
+| GET | `/corporate-actions/dividends?ticker=` | corporate_actions | Polygon (reference) | Dividend history |
+| GET | `/corporate-actions/splits?ticker=` | corporate_actions | Polygon (reference) | Split history |
+| GET | `/corporate-actions/upcoming-splits` | corporate_actions | Polygon (reference) | Splits next 30 days |
+| GET | `/corporate-actions/upcoming-dividends` | corporate_actions | Polygon (reference) | Dividends next 30 days |
+| GET | `/corporate-actions/recent-ipos` | corporate_actions | Massive | IPOs last 90 days |
+| GET | `/news?ticker=` | news | Polygon (news) | Company news |
+| GET | `/news/market` | news | Polygon (news) | Market-wide news |
+| GET | `/inside-days?ticker=` | scanner | Polygon (daily bars) | Inside-day detection |
+| GET | `/scan-inside-days` | scanner | Polygon (grouped) | Bulk inside-day scan |
+| GET | `/economic-data` | economics | FRED + Massive | Economic indicators |
 | GET | `/upcoming-events` | economics | FRED (releases) | Upcoming events |
-| GET | `/health` | main | - | Health check |
+| GET | `/health` | main | — | Health check |
 
 ---
 
@@ -354,6 +370,8 @@ All routes available at both `/api/v1` (versioned) and `/api` (backward-compat):
 | Variable | Required | Used By | Description |
 |----------|----------|---------|-------------|
 | `MASSIVE_API_KEY` | Yes | Backend | API key for both Polygon.io and Massive |
+| `FRED_API_KEY` | Yes | Backend | API key for FRED economic data |
+| `TOGETHER_API_KEY` | Yes | Backend | API key for Together AI LLM (chat) |
 | `VITE_API_BASE_URL` | Yes | Frontend | Backend URL (e.g. `http://localhost:8000`) |
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon/publishable key |

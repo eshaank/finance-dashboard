@@ -1,6 +1,6 @@
 """Unit tests for the scanner service — count_inside_days."""
 
-from app.domains.market.client import DailyBar
+from app.domains.pricing.client import DailyBar
 from app.domains.scanner.service import count_inside_days
 
 

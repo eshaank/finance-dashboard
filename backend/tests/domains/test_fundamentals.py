@@ -1,4 +1,4 @@
-"""Tests for the fundamentals router with mocked service calls."""
+"""Tests for the financials router with mocked service calls."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -23,17 +23,17 @@ MOCK_BALANCE_SHEET_RAW = [
 async def test_balance_sheet_returns_mocked_data(
     authenticated_client: httpx.AsyncClient,
 ) -> None:
-    """GET /api/v1/fundamentals/balance-sheet returns 200 with mocked upstream data."""
+    """GET /api/v1/financials/balance-sheet returns 200 with mocked upstream data."""
     with patch(
-        "app.domains.fundamentals.router.fetch_and_parse",
+        "app.domains.financials.router.fetch_and_parse",
         new_callable=AsyncMock,
     ) as mock_fetch:
-        from app.domains.fundamentals.schemas import BalanceSheetEntry
+        from app.domains.financials.schemas import BalanceSheetEntry
 
         mock_fetch.return_value = [BalanceSheetEntry(**r) for r in MOCK_BALANCE_SHEET_RAW]
 
         response = await authenticated_client.get(
-            "/api/v1/fundamentals/balance-sheet",
+            "/api/v1/financials/balance-sheet",
             params={"ticker": "AAPL"},
         )
 
