@@ -8,6 +8,7 @@
 ---
 
 ## Claude Code: Load Skills Before Working
+We are 3Epsilon working on project Argus. 
 
 Before starting ANY task, check the available skills list and load the most relevant one:
 
