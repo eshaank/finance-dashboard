@@ -23,6 +23,19 @@
 - NEVER assume approval — wait for explicit "yes, deploy"
 - ALWAYS ask before deploying to production
 
+### 3. ALWAYS Load Skills Before Working
+
+Before starting ANY task, check the available skills list and load the most relevant one:
+
+- **UI work** (components, styling, layouts): Load `ui-design-system` skill — this is **MANDATORY** before writing or modifying any frontend component
+- **API work** (market data, endpoints): Load `massive-api` skill
+- **Database work**: Load `supabase-postgres-best-practices` skill
+- **Backend API work**: Load `fastapi-templates` skill
+- **React performance**: Load `vercel-react-best-practices` skill
+- **Code review**: Load `code-review` skill
+
+If multiple skills apply, load the most specific one first.
+
 ---
 
 ## When Something Seems Wrong

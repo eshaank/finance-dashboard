@@ -2,6 +2,7 @@ import { ScannerTab } from '../scanner/ScannerTab'
 import { ResearchTab } from '../research/ResearchTab'
 import { USEconomicsTab } from '../us-economics/USEconomicsTab'
 import { MarketsTab } from '../markets/MarketsTab'
+import { PolymarketTab } from '../polymarket/PolymarketTab'
 import type { TabId } from './NavTabs'
 
 interface DashboardLayoutProps {
@@ -15,6 +16,7 @@ export function DashboardLayout({ activeTab }: DashboardLayoutProps) {
       {activeTab === 'research' && <ResearchTab />}
       {activeTab === 'us-economics' && <USEconomicsTab />}
       {activeTab === 'markets' && <MarketsTab />}
+      {activeTab === 'polymarket' && <PolymarketTab />}
     </main>
   )
 }

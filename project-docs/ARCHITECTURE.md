@@ -117,6 +117,7 @@ backend/app/
 │   ├── scanner/             # router, schemas, service
 │   ├── economics/           # router, schemas, service, client
 │   ├── fred/                # client, service (internal — consumed by economics)
+│   ├── imf/                 # IMF data retrieval (skeleton: router, schemas, service, client)
 │   ├── filings/             # placeholder
 │   ├── news/                # placeholder
 │   └── screener/            # placeholder
