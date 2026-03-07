@@ -295,7 +295,7 @@ A template is a saved prompt with optional placeholder variables.
 Goal: User can type a question and get a streamed text response with widgets on canvas.
 
 1. **Backend:** New `domains/chat/` domain (router, service, schemas, tool registry)
-2. **Backend:** LLM integration (Claude API with tool use) + SSE streaming endpoint
+2. **Backend:** LLM integration (Together AI with tool use) + SSE streaming endpoint
 3. **Backend:** Wire up 4-5 existing services as tools (price chart, company details, balance sheet, income statement, economic data)
 4. **Frontend:** Split-view page layout (chat panel + canvas panel)
 5. **Frontend:** Chat message list with streaming text display
@@ -340,14 +340,14 @@ Goal: Multi-step templates, export, advanced context.
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| LLM Provider | Claude API (tool use) | Native tool calling, strong reasoning for financial analysis |
+| LLM Provider | Together AI (tool use) | Native tool calling, strong reasoning for financial analysis |
 | Streaming Protocol | SSE (Server-Sent Events) | Simpler than WebSockets, sufficient for unidirectional streaming, no WebSocket infra currently in stack |
 | Tool Execution | Internal service calls (Python imports) | Avoids HTTP overhead, rate limiting, and auth for internal calls |
 | Canvas Layout | react-grid-layout | Already used for dashboard widgets (ADR-010), proven in the codebase |
 | Widget Data Contract | Typed discriminated union (`{ type: "chart", data: {...} }`) | Clean separation, frontend block renderer maps type → component |
 | Template Storage | Supabase Postgres with RLS | First justified new tables beyond `profiles` — user-generated content, not market data |
 | Conversation Storage | Supabase Postgres with RLS | Messages + widget data preserved as JSONB for full session replay |
-| New env variable | `ANTHROPIC_API_KEY` | Required for Claude API calls from backend |
+| New env variable | `TOGETHER_API_KEY` | Required for Together AI API calls from backend |
 
 ---
 

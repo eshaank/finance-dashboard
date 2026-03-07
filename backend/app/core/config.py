@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # IMF Data (optional - skeleton for IMF Data Portal / API)
     imf_api_key: str = ""
     imf_base_url: str = "https://api.imf.org"
+    together_api_key: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

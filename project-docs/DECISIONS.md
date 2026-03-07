@@ -65,7 +65,7 @@ Use **Supabase Auth** for authentication with public signups disabled (invite-on
 The original flat structure (`routers/`, `services/`) worked for 7 endpoints but would not scale well as we add SEC filings, news, screeners, and watchlists. Each new feature required touching multiple directories and the shared services file grew unwieldy.
 
 ### Decision
-Adopt DDD where each business domain (`market`, `research`, `fundamentals`, `scanner`, `economics`) is a self-contained module with its own `router.py`, `schemas.py`, `service.py`, and `client.py`. Shared infrastructure lives in `core/` and `shared/`.
+Adopt DDD where each business domain (`pricing`, `company`, `financials`, `short_interest`, `corporate_actions`, `scanner`, `economics`, `news`) is a self-contained module with its own `router.py`, `schemas.py`, `service.py`, and `client.py`. Shared infrastructure lives in `core/` and `shared/`.
 
 ### Consequences
 - Adding a new domain is trivial: create folder, register router, done.
@@ -208,3 +208,27 @@ Registry-based plugin system with react-grid-layout:
 - Supabase migration requires changing only `storage.ts`
 - react-grid-layout adds ~25KB gzipped
 - Widget configs are fully JSON-serializable for persistence
+
+---
+
+## ADR-011: Domain Reorganization for LLM Tool Semantics
+
+**Date:** 2026-03-06
+**Status:** Accepted
+
+### Context
+Original domains were organized around dashboard tabs (`market/`, `research/`, `fundamentals/`). For the upcoming LLM chat system, domain names must be semantically unambiguous so an LLM can select the right tool from the name alone. `fundamentals/` conflated financial statements with short interest data. `research/` mixed company profiles with corporate actions. `market/` bundled pricing, news, and indices.
+
+### Decision
+Split and rename domains for single-concept clarity:
+- `market/` → `pricing/` (charts, quotes, indices)
+- `research/` → `company/` (profile, search) + `corporate_actions/` (dividends, splits, IPOs)
+- `fundamentals/` → `financials/` (income statement, balance sheet, cash flow, ratios) + `short_interest/` (short interest, short volume, float)
+- Market news merged into expanded `news/` domain (company + market news)
+
+### Consequences
+- Each domain maps to exactly one analytical concept — LLM tool selection is unambiguous.
+- More domains (8 active vs 5) but each is smaller and more focused.
+- Scanner cross-domain imports updated from `market` to `pricing`.
+- No business logic changes — only module boundaries moved.
+- All API paths updated to reflect new domain ownership.

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.domains.market.schemas import OHLCBar
+from app.domains.pricing.schemas import OHLCBar
 
 
 class InsideDayResult(BaseModel):

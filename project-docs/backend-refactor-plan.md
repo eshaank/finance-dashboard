@@ -13,7 +13,7 @@ These files require **zero changes**:
 | File/Module | Why it's fine |
 |---|---|
 | `main.py` | Lifespan, CORS, middleware, rate limiting — all reusable. Just add `POST` to `allow_methods` (already there) and wire the new chat router. |
-| `core/config.py` | Add one new env var (`ANTHROPIC_API_KEY`) to the Settings model. That's it. |
+| `core/config.py` | Add one new env var (`TOGETHER_API_KEY`) to the Settings model. That's it. |
 | `core/security.py` | JWT verification stays the same. Chat endpoint uses `Depends(get_current_user)` like everything else. |
 | `core/exceptions.py` | `AppException` hierarchy works for chat errors too. |
 | `core/middleware.py` | Request logging + X-Request-ID — no changes. |
@@ -237,11 +237,11 @@ Since you're gutting the frontend anyway, you can do the backend reorg in one pa
 **Step 2: Add `chat/` domain** (the real work)
 - `router.py` — SSE streaming endpoint
 - `tools.py` — tool registry wired to existing services
-- `service.py` — Claude API integration, conversation state
+- `service.py` — Together AI integration, conversation state
 - `schemas.py` — message types, widget payloads
 - `prompts.py` — system prompt, skill definitions
-- New env var: `ANTHROPIC_API_KEY`
-- Add `anthropic` to Python dependencies
+- New env var: `TOGETHER_API_KEY`
+- Add Together AI client to Python dependencies
 
 **Step 3: Minor `main.py` updates**
 - Register chat router in `api/v1/router.py`

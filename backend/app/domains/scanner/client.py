@@ -5,7 +5,7 @@ import httpx
 from cachetools import TTLCache
 
 from app.core.config import get_settings
-from app.domains.market.client import DailyBar
+from app.domains.pricing.client import DailyBar
 from app.shared.http_client import fetch_with_retry
 
 _grouped_cache: TTLCache[str, list] = TTLCache(maxsize=32, ttl=600)

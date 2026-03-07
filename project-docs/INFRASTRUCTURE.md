@@ -20,6 +20,7 @@
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL (e.g. `https://xxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon/publishable key |
 | `SUPABASE_URL` | Yes | Backend | Supabase project URL (JWKS / ES256 verification) |
+| `TOGETHER_API_KEY` | Yes | Backend | API key for Together AI LLM (chat) |
 | `DEBUG` | No | Backend | FastAPI debug mode (default: `false`) |
 
 ## Running Locally
@@ -41,7 +42,7 @@ just dev-frontend   # frontend only (port 5173)
 | Service | Purpose | Auth |
 |---------|---------|------|
 | Polygon.io | Price data (OHLC bars) + company reference data | `MASSIVE_API_KEY` as query param |
-| Massive API | Fundamentals, short interest, short volume, float, Fed economic data | `MASSIVE_API_KEY` as query param |
+| Massive API | Financial statements, ratios, short interest, short volume, float, Fed economic data | `MASSIVE_API_KEY` as query param |
 | FRED | Economic series (GDP, payrolls, etc.) + release calendar | `FRED_API_KEY` as query param |
 | Supabase Auth | User authentication (invite-only) | `VITE_SUPABASE_ANON_KEY`; backend uses JWKS (ES256) |
 | Supabase Postgres | User profiles table with RLS | Via Supabase Auth session |
@@ -60,6 +61,7 @@ just dev-frontend   # frontend only (port 5173)
 | Auth | Supabase Auth (ES256 JWKS) | @supabase/supabase-js |
 | Database | Supabase Postgres | (profiles only) |
 | JWT | PyJWT | |
+| LLM | Together AI SDK | Chat orchestration |
 | Fonts | DM Sans, Playfair Display, Geist Mono | Google Fonts |
 
 ## Backend Dependencies (new in refactor)
@@ -78,6 +80,7 @@ just dev-frontend   # frontend only (port 5173)
    |----------|--------|--------|
    | `MASSIVE_API_KEY` | Backend (serverless) | Same as local |
    | `FRED_API_KEY` | Backend (serverless) | Same as local |
+   | `TOGETHER_API_KEY` | Backend (serverless) | Same as local |
    | `SUPABASE_URL` | Backend | e.g. `https://xxx.supabase.co` |
    | `VITE_API_BASE_URL` | Frontend (build) | Leave **empty** so API calls use same origin (`/api/...`) |
    | `VITE_SUPABASE_URL` | Frontend (build) | Same as `SUPABASE_URL` |
@@ -105,4 +108,4 @@ Interactive API docs available at:
 - `/api/v1/docs` — Swagger UI
 - `/api/v1/redoc` — ReDoc
 
-All endpoints are tagged by domain (market, research, fundamentals, scanner, economics).
+All endpoints are tagged by domain (pricing, company, financials, short_interest, corporate_actions, scanner, economics, news, filings, imf, polymarket).

@@ -14,30 +14,6 @@ async def _get(client: httpx.AsyncClient, path: str, params: dict) -> list[dict]
     return response.json().get("results", [])
 
 
-async def get_balance_sheet(client: httpx.AsyncClient, ticker: str) -> list[dict]:
-    return await _get(client, "/stocks/financials/v1/balance-sheets", {
-        "tickers": ticker.upper(), "limit": 50, "sort": "period_end.desc",
-    })
-
-
-async def get_cash_flow(client: httpx.AsyncClient, ticker: str) -> list[dict]:
-    return await _get(client, "/stocks/financials/v1/cash-flow-statements", {
-        "tickers": ticker.upper(), "limit": 50, "sort": "period_end.desc",
-    })
-
-
-async def get_income_statement(client: httpx.AsyncClient, ticker: str) -> list[dict]:
-    return await _get(client, "/stocks/financials/v1/income-statements", {
-        "tickers": ticker.upper(), "limit": 50, "sort": "period_end.desc",
-    })
-
-
-async def get_ratios(client: httpx.AsyncClient, ticker: str) -> list[dict]:
-    return await _get(client, "/stocks/financials/v1/ratios", {
-        "ticker": ticker.upper(), "limit": 20, "sort": "date.asc",
-    })
-
-
 async def get_short_interest(client: httpx.AsyncClient, ticker: str) -> list[dict]:
     return await _get(client, "/stocks/v1/short-interest", {
         "ticker": ticker.upper(), "limit": 50, "sort": "settlement_date.asc",

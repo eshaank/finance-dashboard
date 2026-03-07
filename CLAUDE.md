@@ -235,7 +235,7 @@ git checkout -b feat/<task-name>
 |----------|----------|---------|-------------|
 | `MASSIVE_API_KEY` | Yes | Backend | API key for Polygon.io + Massive APIs |
 | `FRED_API_KEY` | Yes | Backend | API key for FRED economic data |
-| `ANTHROPIC_API_KEY` | Yes | Backend | API key for Claude LLM (chat) |
+| `TOGETHER_API_KEY` | Yes | Backend | API key for Together AI LLM (chat) |
 | `VITE_API_BASE_URL` | Yes | Frontend | Backend URL (e.g. `http://localhost:8000`) |
 | `VITE_SUPABASE_URL` | Yes | Frontend | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Frontend | Supabase anon key |
