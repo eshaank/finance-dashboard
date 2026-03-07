@@ -21,7 +21,7 @@ VIOLATIONS=""
 # Check for sensitive files being staged
 SENSITIVE_FILES=".env .env.local .env.production .env.staging secrets.json id_rsa id_ed25519 credentials.json service-account.json .npmrc"
 for file in $SENSITIVE_FILES; do
-    if echo "$STAGED" | grep -q "$file"; then
+    if echo "$STAGED" | grep -qE "(^|/)${file}$"; then
         VIOLATIONS="${VIOLATIONS}\n  - SENSITIVE FILE STAGED: $file"
     fi
 done

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.perigon.io)",
+      "WebFetch(domain:www.perigon.io)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
