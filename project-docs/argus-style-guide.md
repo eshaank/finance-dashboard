@@ -83,6 +83,16 @@ The accent is a **medium-saturation blue** — bright enough to be noticed, mute
 
 **Positive/negative indicators** always use the semantic color for text and the dim variant as a background pill. Example: green text `▲ 6.1%` on `--green-dim` background, rounded into a small badge.
 
+**Alpha variants with `color-mix()`:** Instead of hardcoding rgba values for dim variants, prefer:
+
+```css
+--green-dim: color-mix(in oklab, var(--green) 12%, transparent);
+--red-dim: color-mix(in oklab, var(--red) 12%, transparent);
+--accent-glow: color-mix(in oklab, var(--accent) 8%, transparent);
+```
+
+This keeps dim variants in sync when base colors change.
+
 ### 2.6 Chart Palette
 
 | Token | Hex | Usage |
@@ -283,6 +293,29 @@ padding: 4–6px 10–14px
 
 Hover: border shifts to `--accent` or `--text-muted`, text shifts to `--accent` or `--text-primary`.
 
+**Component API (CVA):** Codify button variants with [class-variance-authority](https://cva.style/docs) for type-safe props:
+
+```typescript
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--accent] disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-[--accent] text-white hover:bg-[--accent-dim]',
+        ghost: 'border border-[--border] text-[--text-secondary] hover:border-[--accent] hover:text-[--accent]',
+        chip: 'bg-[--bg-tertiary] border border-[--border] rounded-[20px] text-[--text-secondary] hover:border-[--accent] hover:text-[--accent] hover:bg-[--accent-glow]',
+      },
+      size: {
+        sm: 'h-7 px-2.5 text-[11px]',
+        md: 'h-9 px-3.5 text-[12px]',
+        icon: 'size-9',
+      },
+    },
+    defaultVariants: { variant: 'ghost', size: 'md' },
+  }
+)
+```
+
 **Primary button (chat send):**
 
 ```
@@ -330,6 +363,24 @@ placeholder: var(--text-muted)
 ```
 
 Focus state: border transitions to `--accent` over `0.15s`.
+
+**Error state:**
+
+```
+border-color: var(--red)
+focus border-color: var(--red) (not accent)
+```
+
+Below the input, an error message element:
+
+```
+font-size: 11px
+color: var(--red)
+margin-top: 4px
+role="alert"
+```
+
+The input must have `aria-invalid="true"` and `aria-describedby="<id>-error"` when in error state.
 
 The chat input uses a wrapper pattern: the outer wrapper has the border and radius, containing a borderless textarea and a send button side by side.
 
@@ -466,6 +517,32 @@ All transitions use `ease` or `ease-out` timing function. Never use `linear` (fe
 - Hover effects are instant-feeling (`0.12–0.15s`) — the user should never feel like they're "waiting" for a hover
 - Never use bounce, elastic, or spring animations — the tone is professional and restrained
 
+### 8.4 Entry Animations (CSS-native)
+
+For popover/dropdown entry animations, use the CSS `@starting-style` rule instead of JS-triggered class toggling:
+
+```css
+[popover] {
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out, display 0.2s allow-discrete;
+  opacity: 1;
+  transform: scale(1);
+}
+
+[popover]:not(:popover-open) {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+@starting-style {
+  [popover]:popover-open {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+```
+
+This replaces JS animation libraries for entry/exit transitions on native popovers and dialogs.
+
 ---
 
 ## 9. Scrolling
@@ -567,3 +644,67 @@ The widget canvas grid should also respond: 2 columns above 900px canvas width, 
 - Don't use bounce/spring/elastic animations
 - Don't use fully circular containers (except the 8px status dot)
 - Don't mix font families within a single data context (e.g., don't put a DM Sans number next to a JetBrains Mono number in the same table)
+
+---
+
+## 13. Accessibility
+
+### 13.1 Focus Rings
+
+All interactive elements (buttons, inputs, links, sidebar items) must have visible focus indicators using the `focus-visible` pseudo-class:
+
+```css
+focus-visible:outline-none
+focus-visible:ring-2
+focus-visible:ring-[--accent]
+focus-visible:ring-offset-2
+focus-visible:ring-offset-[--bg-secondary]
+```
+
+The ring uses `--accent` to match the brand color. The offset uses the parent surface color so the ring doesn't touch the element edge.
+
+### 13.2 ARIA for Form Errors
+
+Inputs in error state must include:
+
+- `aria-invalid="true"` on the input element
+- `aria-describedby="<id>-error"` pointing to the error message element
+- The error message element must have `role="alert"` so screen readers announce it
+
+```html
+<input id="ticker" aria-invalid="true" aria-describedby="ticker-error" />
+<p id="ticker-error" role="alert">Ticker symbol not found</p>
+```
+
+### 13.3 Screen Reader Text
+
+Icon-only buttons (send, sidebar collapse, widget actions) must include a visually hidden label:
+
+```html
+<button>
+  <SendIcon />
+  <span class="sr-only">Send message</span>
+</button>
+```
+
+The `sr-only` class: `position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;`
+
+### 13.4 Keyboard Navigation
+
+- **Sidebar items and toggle groups** must be navigable with arrow keys (`role="listbox"` or `role="tablist"` as appropriate)
+- **Escape** closes any open popover, dropdown, or overlay
+- **Enter/Space** activates buttons and toggles
+- **Tab order** follows visual layout: icon rail → sidebar → canvas → chat panel
+
+### 13.5 Color Contrast
+
+All text/background combinations meet WCAG AA (4.5:1 minimum):
+
+| Combination | Ratio | Pass |
+|-------------|-------|------|
+| `--text-primary` (#e8eaf0) on `--bg-primary` (#0a0b0e) | ~14:1 | AA |
+| `--text-primary` (#e8eaf0) on `--bg-secondary` (#111318) | ~12:1 | AA |
+| `--text-secondary` (#8b90a0) on `--bg-secondary` (#111318) | ~5:1 | AA |
+| `--text-muted` (#555b6e) on `--bg-secondary` (#111318) | ~2.8:1 | AA Large only |
+
+**Note:** `--text-muted` on dark surfaces passes AA only for large text (14px bold / 18px regular). Since muted text is used at 10–11px for labels, ensure these labels are `font-weight: 600` to improve legibility.

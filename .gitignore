@@ -26,9 +26,16 @@ backend/.venv/
 Thumbs.db
 
 # Editor
-.cursor/
+# .cursor/ — track rules and settings, ignore ephemeral data
+.cursor/plans/
+.cursor/composer/
+.cursor/chat/
 .vscode/
 .idea/
+
+# OpenCode — track agents, ignore ephemeral data
+.opencode/cache/
+.opencode/sessions/
 
 # Claude local
 CLAUDE.local.md

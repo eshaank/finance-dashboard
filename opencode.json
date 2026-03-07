@@ -1,0 +1,8 @@
+{
+  "instructions": [
+    ".rules/base.md",
+    ".rules/architecture.md",
+    ".rules/git-workflow.md",
+    ".rules/design-system.md"
+  ]
+}
